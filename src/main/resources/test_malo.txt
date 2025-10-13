@@ -1,0 +1,23 @@
+int main() {
+
+    int x = 10;
+    int x = 20;
+
+
+    y = 15;
+
+
+    int number = true;
+    bool condition = 42;
+
+    int result = x + true;
+
+    int uninitialized;
+    int value = uninitialized + 5;
+
+
+    int zero = 0;
+    int division = x / zero;
+
+    return x;
+}

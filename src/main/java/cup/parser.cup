@@ -1,0 +1,248 @@
+/*
+  File Name: ycalc_ast.cup
+  Parser modificado para generar AST en lugar de strings
+  To Create: > java java_cup.Main < ycalc_ast.cup
+*/
+
+import java_cup.runtime.*;
+import java.util.List;
+import java.util.ArrayList;
+
+parser code {:
+
+    public void report_error(String message, Object info) {
+        StringBuffer m = new StringBuffer("Error");
+        if (info instanceof java_cup.runtime.Symbol) {
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+            if (s.left >= 0) {
+                m.append(" in line "+(s.left+1));
+                if (s.right >= 0)
+                    m.append(", column "+(s.right+1));
+            }
+        }
+        m.append(" : "+message);
+        System.err.println(m);
+    }
+
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        System.exit(1);
+    }
+:};
+
+/* Terminal symbols (tokens) */
+terminal           SEMI, COMMA, ASSIGN;
+terminal           PLUS, MINUS, TIMES, DIVIDE;
+terminal           LPAREN, RPAREN, LBRACE, RBRACE;
+terminal           INT, BOOL, VOID, MAIN, RETURN;
+terminal           TRUE, FALSE;
+terminal Integer   NUMBER;
+terminal String    ID;
+
+/* Non-terminal symbols - ahora retornan nodos del AST */
+non terminal ProgramNode        program;
+non terminal FunctionDefNode    function_def;
+non terminal List               param_list, param_list_opt;
+non terminal ParamNode          param;
+non terminal String             type;
+non terminal List               stmt_list;
+non terminal StmtNode           stmt;
+non terminal DeclarationNode    declaration;
+non terminal AssignmentNode     assignment;
+non terminal ReturnStmtNode     return_stmt;
+non terminal ExprNode           expr;
+non terminal List               var_list;
+
+/* Precedence */
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE;
+
+/* Grammar Rules */
+
+program ::= function_def:f
+            {:
+                System.out.println("AST generado exitosamente!");
+                RESULT = new ProgramNode(f);
+            :}
+            ;
+
+function_def ::= type:t MAIN LPAREN param_list_opt:p RPAREN LBRACE stmt_list:s RBRACE
+                 {:
+                     List<ParamNode> params = (p != null) ? (List<ParamNode>)p : new ArrayList<ParamNode>();
+                     List<StmtNode> statements = (List<StmtNode>)s;
+                     RESULT = new FunctionDefNode(t, "main", params, statements);
+                 :}
+                 ;
+
+param_list_opt ::= param_list:p
+                   {:  RESULT = p; :}
+                   |
+                   /* empty */
+                   {:  RESULT = new ArrayList<ParamNode>(); :}
+                   ;
+
+param_list ::= param_list:pl COMMA param:p
+               {:
+                   List<ParamNode> list = (List<ParamNode>)pl;
+                   list.add(p);
+                   RESULT = list;
+               :}
+               |
+               param:p
+               {:
+                   List<ParamNode> list = new ArrayList<ParamNode>();
+                   list.add(p);
+                   RESULT = list;
+               :}
+               ;
+
+param ::= type:t ID:id
+          {:
+              RESULT = new ParamNode(t, id);
+          :}
+          ;
+
+type ::= INT
+         {:  RESULT = "int"; :}
+         |
+         BOOL
+         {:  RESULT = "bool"; :}
+         |
+         VOID
+         {:  RESULT = "void"; :}
+         ;
+
+stmt_list ::= stmt_list:sl stmt:s
+              {:
+                  List<StmtNode> list = (List<StmtNode>)sl;
+                  list.add(s);
+                  RESULT = list;
+              :}
+              |
+              stmt:s
+              {:
+                  List<StmtNode> list = new ArrayList<StmtNode>();
+                  list.add(s);
+                  RESULT = list;
+              :}
+              ;
+
+stmt ::= declaration:d SEMI
+         {:
+             RESULT = d;
+         :}
+         |
+         assignment:a SEMI
+         {:
+             RESULT = a;
+         :}
+         |
+         return_stmt:r SEMI
+         {:
+             RESULT = r;
+         :}
+         |
+         expr:e SEMI
+         {:
+             RESULT = new ExprStmtNode(e);
+         :}
+         ;
+
+declaration ::= type:t var_list:vl
+                {:
+                    List<VarDeclNode> variables = (List<VarDeclNode>)vl;
+                    RESULT = new DeclarationNode(t, variables);
+                :}
+                ;
+
+var_list ::= var_list:vl COMMA ID:id
+             {:
+                 List<VarDeclNode> list = (List<VarDeclNode>)vl;
+                 list.add(new VarDeclNode(id, null));
+                 RESULT = list;
+             :}
+             |
+             var_list:vl COMMA ID:id ASSIGN expr:e
+             {:
+                 List<VarDeclNode> list = (List<VarDeclNode>)vl;
+                 list.add(new VarDeclNode(id, e));
+                 RESULT = list;
+             :}
+             |
+             ID:id
+             {:
+                 List<VarDeclNode> list = new ArrayList<VarDeclNode>();
+                 list.add(new VarDeclNode(id, null));
+                 RESULT = list;
+             :}
+             |
+             ID:id ASSIGN expr:e
+             {:
+                 List<VarDeclNode> list = new ArrayList<VarDeclNode>();
+                 list.add(new VarDeclNode(id, e));
+                 RESULT = list;
+             :}
+             ;
+
+assignment ::= ID:id ASSIGN expr:e
+               {:
+                   RESULT = new AssignmentNode(id, e);
+               :}
+               ;
+
+return_stmt ::= RETURN expr:e
+                {:
+                    RESULT = new ReturnStmtNode(e);
+                :}
+                |
+                RETURN
+                {:
+                    RESULT = new ReturnStmtNode(null);
+                :}
+                ;
+
+expr ::= expr:e1 PLUS expr:e2
+         {:
+             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.PLUS, e2);
+         :}
+         |
+         expr:e1 MINUS expr:e2
+         {:
+             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.MINUS, e2);
+         :}
+         |
+         expr:e1 TIMES expr:e2
+         {:
+             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.TIMES, e2);
+         :}
+         |
+         expr:e1 DIVIDE expr:e2
+         {:
+             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.DIVIDE, e2);
+         :}
+         |
+         LPAREN expr:e RPAREN
+         {:
+             RESULT = e;
+         :}
+         |
+         NUMBER:n
+         {:
+             RESULT = new NumberNode(n);
+         :}
+         |
+         TRUE
+         {:
+             RESULT = new BooleanNode(true);
+         :}
+         |
+         FALSE
+         {:
+             RESULT = new BooleanNode(false);
+         :}
+         |
+         ID:id
+         {:
+             RESULT = new VariableNode(id);
+         :}
+         ;
