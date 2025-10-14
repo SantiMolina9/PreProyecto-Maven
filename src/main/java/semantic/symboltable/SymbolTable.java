@@ -9,11 +9,62 @@ public class SymbolTable {
     private Scope globalScope;
     private Scope currentScope;
     private int scopeCounter;
+    private int currentStackOffset; // Para tracking de offsets en stack frame
 
     public SymbolTable() {
         this.globalScope = new Scope("global", null);
         this.currentScope = globalScope;
         this.scopeCounter = 0;
+        this.currentStackOffset = 0;
+    }
+
+    // Nuevos métodos para codegen
+    public int allocateStackSpace(int size) {
+        currentStackOffset += size;
+        return currentStackOffset;
+    }
+
+    public void resetStackOffset() {
+        currentStackOffset = 0;
+    }
+
+    public int getCurrentStackOffset() {
+        return currentStackOffset;
+    }
+
+    public boolean declareWithAddress(String name, String type, String address, int size, boolean isGlobal) {
+        // Usamos el método existente declare para mantener la consistencia
+        if (!currentScope.declare(name, type, -1, -1)) {
+            return false;
+        }
+
+        // Luego actualizamos la entrada con la información de codegen
+        SymbolEntry entry = currentScope.lookup(name);
+        if (entry != null) {
+            entry.setAddress(address);
+            entry.setSize(size);
+            entry.setGlobal(isGlobal);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Declara un símbolo con información de dirección y valor inicial
+     */
+    public boolean declareWithAddress(String name, String type, Object value, String address, int size, boolean isGlobal, int line, int column) {
+        if (!currentScope.declare(name, type, value, line, column)) {
+            return false;
+        }
+
+        SymbolEntry entry = currentScope.lookup(name);
+        if (entry != null) {
+            entry.setAddress(address);
+            entry.setSize(size);
+            entry.setGlobal(isGlobal);
+            return true;
+        }
+        return false;
     }
 
     /**

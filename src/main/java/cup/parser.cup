@@ -7,6 +7,11 @@
 import java_cup.runtime.*;
 import java.util.List;
 import java.util.ArrayList;
+import ast.nodes.expression.*;
+import ast.nodes.program.FunctionDefNode;
+import ast.nodes.program.ParamNode;
+import ast.nodes.program.ProgramNode;
+import ast.nodes.statement.*;
 
 parser code {:
 

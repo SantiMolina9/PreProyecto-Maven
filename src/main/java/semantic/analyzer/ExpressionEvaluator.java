@@ -95,7 +95,7 @@ public class ExpressionEvaluator {
                 if (right == 0) {
                     errorHandler.addError(
                             new CompilerError(
-                                    -1, -1, "Division by zero in constant expression", "SEMANTIC ERROR"
+                                    -1, -1, "Division by zero in constant expression", "ERROR SEMANTICO"
                             )
                     );
                     return 0;

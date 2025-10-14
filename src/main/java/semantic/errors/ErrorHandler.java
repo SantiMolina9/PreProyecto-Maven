@@ -46,14 +46,14 @@ public class ErrorHandler {
     }
 
     public void printSummary() {
-        System.out.println("\n========== Compilation Summary ==========");
-        System.out.println("Errors: " + errors.size());
+        System.out.println("\n========== Resumen de compilacion ==========");
+        System.out.println("Errores: " + errors.size());
         System.out.println("Warnings: " + warnings.size());
 
         if (hasErrors) {
-            System.out.println("\nCompilation failed!");
+            System.out.println("\nCompilacion fallida!");
         } else {
-            System.out.println("\nCompilation successful!");
+            System.out.println("\nCompilacion exitosa!");
         }
     }
 

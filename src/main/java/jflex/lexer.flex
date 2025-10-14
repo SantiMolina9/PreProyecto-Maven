@@ -7,8 +7,9 @@
 */
 
 /* --------------------------Usercode Section------------------------ */
-
+import com.ejemplo.parser.sym;
 import java_cup.runtime.*;
+
 
 %%
 

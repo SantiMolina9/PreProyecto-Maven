@@ -13,6 +13,10 @@ public class SymbolEntry {
     private int declarationLine;
     private int declarationColumn;
     private String scope;
+    private String address;        // Dirección en memoria (ej: "[rbp-8]")
+    private int stackOffset;       // Offset en stack frame
+    private boolean isGlobal;      // Si es variable global
+    private int size;              // Tamaño en bytes
 
     public SymbolEntry(String name, String type, int line, int column) {
         this.name = name;
@@ -75,6 +79,17 @@ public class SymbolEntry {
         this.scope = scope;
     }
 
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
+
+    public int getStackOffset() { return stackOffset; }
+    public void setStackOffset(int stackOffset) { this.stackOffset = stackOffset; }
+
+    public boolean isGlobal() { return isGlobal; }
+    public void setGlobal(boolean global) { isGlobal = global; }
+
+    public int getSize() { return size; }
+    public void setSize(int size) { this.size = size; }
     @Override
     public String toString() {
         return String.format("Symbol{name='%s', type='%s', value=%s, initialized=%b, line=%d, col=%d}",

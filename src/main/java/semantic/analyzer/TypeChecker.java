@@ -23,6 +23,23 @@ public class TypeChecker {
         return targetType.equals(sourceType);
     }
 
+    public static int getTypeSize(String type) {
+        switch (type) {
+            case "int": return 4;     // 32-bit integer
+            case "bool": return 1;    // 8-bit boolean
+            case "void": return 0;
+            default: return 4;        // Default to 4 bytes
+        }
+    }
+
+    public static String getAssemblyType(String type) {
+        switch (type) {
+            case "int": return "dd";
+            case "bool": return "db";
+            default: return "dd";
+        }
+    }
+
     /**
      * Verifica si un tipo es válido para operaciones aritméticas
      */

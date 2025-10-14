@@ -49,13 +49,13 @@ public class SemanticAnalyzer implements ASTVisitor {
     @Override
     public Object visitProgram(ProgramNode node) {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("SEMANTIC ANALYSIS STARTED");
+        System.out.println("INICIO DEL ANALISIS SEMANTICO");
         System.out.println("=".repeat(50));
 
         node.getMainFunction().accept(this);
 
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("SEMANTIC ANALYSIS COMPLETED");
+        System.out.println("ANALISIS SEMANTICO COMPLETADO");
         System.out.println("=".repeat(50));
 
         return null;
@@ -88,7 +88,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                     new CompilerError(-1, -1,
                             "Function '" + functionName + "' with return type '" +
                                     returnType + "' must have a return statement",
-                            "SEMANTIC ERROR")
+                            "ERROR SEMANTICO")
             );
         }
 
@@ -107,7 +107,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             errorHandler.addError(
                     new CompilerError(-1, -1,
                             "Parameter '" + paramName + "' is already declared in this scope",
-                            "SEMANTIC ERROR")
+                            "ERROR SEMANTICO")
             );
         } else {
             Object defaultValue = TypeChecker.getDefaultValue(paramType);
@@ -131,7 +131,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 errorHandler.addError(
                         new CompilerError(-1, -1,
                                 "Variable '" + varName + "' is already declared in this scope",
-                                "SEMANTIC ERROR")
+                                "ERROR SEMANTICO")
                 );
                 continue;
             }
@@ -145,7 +145,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                             new CompilerError(-1, -1,
                                     "Cannot assign " + initType + " to variable '" +
                                             varName + "' of type " + type,
-                                    "SEMANTIC ERROR")
+                                    "ERROR SEMANTICO")
                     );
                 }
 
@@ -182,7 +182,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             errorHandler.addError(
                     new CompilerError(-1, -1,
                             "Variable '" + varName + "' is not declared",
-                            "SEMANTIC ERROR")
+                            "ERROR SEMANTICO")
             );
             return null;
         }
@@ -193,7 +193,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                     new CompilerError(-1, -1,
                             "Cannot assign " + exprType + " to variable '" +
                                     varName + "' of type " + entry.getType(),
-                            "SEMANTIC ERROR")
+                            "ERROR SEMANTICO")
             );
         }
 
@@ -215,7 +215,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                         new CompilerError(-1, -1,
                                 "Return type mismatch: expected " + currentFunctionReturnType +
                                         ", got " + exprType,
-                                "SEMANTIC ERROR")
+                                "ERROR SEMANTICO")
                 );
             }
 
@@ -228,7 +228,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 errorHandler.addError(
                         new CompilerError(-1, -1,
                                 "Function must return a value of type " + currentFunctionReturnType,
-                                "SEMANTIC ERROR")
+                                "ERROR SEMANTICO")
                 );
             }
             System.out.println("  ← Return (void)");
@@ -252,7 +252,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             errorHandler.addError(
                     new CompilerError(-1, -1,
                             "Type mismatch in binary operation: " + leftType + " and " + rightType,
-                            "SEMANTIC ERROR")
+                            "ERROR SEMANTICO")
             );
             return "error";
         }
@@ -261,7 +261,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             errorHandler.addError(
                     new CompilerError(-1, -1,
                             "Arithmetic operations are only supported for int type, got: " + leftType,
-                            "SEMANTIC ERROR")
+                            "ERROR SEMANTICO")
             );
             return "error";
         }
@@ -288,7 +288,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             errorHandler.addError(
                     new CompilerError(-1, -1,
                             "Variable '" + varName + "' is not declared",
-                            "SEMANTIC ERROR")
+                            "ERROR SEMANTICO")
             );
             return "error";
         }
@@ -323,7 +323,7 @@ public class SemanticAnalyzer implements ASTVisitor {
      */
     public void printSummary() {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("SEMANTIC ANALYSIS SUMMARY");
+        System.out.println("RESUMEN DEL ANALISIS SEMANTICO");
         System.out.println("=".repeat(50));
 
         symbolTable.printSymbolTable();

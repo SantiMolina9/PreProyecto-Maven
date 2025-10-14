@@ -1,22 +1,4 @@
 int main() {
     int x = 10;
-    int y = 20;
-    bool flag = true;
-
-    int a, b = 5, c;
-
-
-    x = x + y * 2;
-    y = (x - 15) / 3;
-
-    a = x + y;
-    c = a * b;
-    flag = false;
-
-    int uninitialized;
-    bool another_flag;
-
-    int result = a + b + c;
-
-    return result;
+    return x;
 }
