@@ -38,11 +38,11 @@ public class CodeGenerator implements ASTVisitor {
     }
 
     private void initializeDataSection() {
-        dataSection.add("section .data");
+        /*dataSection.add("section .data");
         dataSection.add("    newline db 10, 0");
         dataSection.add("    int_format db \"%d\", 0");
         dataSection.add("    bool_true db \"true\", 0");
-        dataSection.add("    bool_false db \"false\", 0");
+        dataSection.add("    bool_false db \"false\", 0");*/
     }
 
     private String generateLabel(String base) {
@@ -62,14 +62,14 @@ public class CodeGenerator implements ASTVisitor {
     }
 
     private void emitComment(String comment) {
-        textSection.add("    ; " + comment);
+        //textSection.add("    ; " + comment);
     }
 
     // ========== VISITANTES PRINCIPALES ==========
 
     @Override
     public Object visitProgram(ProgramNode node) {
-        emitComment("Inicio del programa");
+        //emitComment("Inicio del programa");
 
         // Generar código para la función main
         node.getMainFunction().accept(this);
@@ -85,7 +85,7 @@ public class CodeGenerator implements ASTVisitor {
         String functionName = node.getFunctionName();
         currentFunction = functionName;
 
-        emitComment("Definición de función: " + functionName);
+        //emitComment("Definición de función: " + functionName);
         emitLabel(functionName);
 
         // Prologue
@@ -110,7 +110,7 @@ public class CodeGenerator implements ASTVisitor {
 
         // Si no hay return statement, agregar retorno por defecto
         if (!hasReturnStatement(node.getStatements())) {
-            emitComment("Return implícito");
+            //emitComment("Return implícito");
             emit("mov rax, 0"); // Valor de retorno por defecto
         }
 
@@ -225,7 +225,7 @@ public class CodeGenerator implements ASTVisitor {
 
     @Override
     public Object visitAssignment(AssignmentNode node) {
-        emitComment("Asignación: " + node.getVariableName());
+        //emitComment("Asignación: " + node.getVariableName());
 
         // Evaluar la expresión derecha
         node.getExpression().accept(this); // Resultado en eax
@@ -241,7 +241,7 @@ public class CodeGenerator implements ASTVisitor {
 
     @Override
     public Object visitReturnStmt(ReturnStmtNode node) {
-        emitComment("Return statement");
+        //emitComment("Return statement");
 
         if (node.hasExpression()) {
             node.getExpression().accept(this); // Resultado en eax
@@ -264,7 +264,7 @@ public class CodeGenerator implements ASTVisitor {
 
     @Override
     public Object visitBinaryOp(BinaryOpNode node) {
-        emitComment("Operación binaria: " + node.getOperator());
+        //emitComment("Operación binaria: " + node.getOperator());
 
         // Evaluar operando izquierdo
         node.getLeft().accept(this);
@@ -300,14 +300,14 @@ public class CodeGenerator implements ASTVisitor {
 
     @Override
     public Object visitNumber(NumberNode node) {
-        emitComment("Cargar número: " + node.getValue());
+        //emitComment("Cargar número: " + node.getValue());
         emit("mov eax, " + node.getValue());
         return null;
     }
 
     @Override
     public Object visitBoolean(BooleanNode node) {
-        emitComment("Cargar booleano: " + node.getValue());
+        //emitComment("Cargar booleano: " + node.getValue());
         emit("mov eax, " + (node.getValue() ? "1" : "0"));
         return null;
     }
@@ -316,7 +316,7 @@ public class CodeGenerator implements ASTVisitor {
     public Object visitVariable(VariableNode node) {
         SymbolEntry entry = symbolTable.lookup(node.getName());
         if (entry != null) {
-            emitComment("Cargar variable: " + node.getName());
+            //emitComment("Cargar variable: " + node.getName());
             if (entry.isGlobal()) {
                 emit("mov eax, [" + entry.getAddress() + "]");
             } else {
@@ -382,13 +382,13 @@ public class CodeGenerator implements ASTVisitor {
             code.append(line).append("\n");
         }
 
-        code.append("\nsection .text\n");
+        /*code.append("\nsection .text\n");
         code.append("global _start\n\n");
         code.append("_start:\n");
         code.append("    call main\n");
         code.append("    mov ebx, eax    ; exit code\n");
         code.append("    mov eax, 1      ; sys_exit\n");
-        code.append("    int 0x80\n\n");
+        code.append("    int 0x80\n\n");*/
 
         // Ensamblar sección text
         for (String line : textSection) {
