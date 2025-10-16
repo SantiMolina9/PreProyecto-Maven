@@ -381,7 +381,7 @@ public class CodeGenerator implements ASTVisitor {
         for (String line : dataSection) {
             code.append(line).append("\n");
         }
-
+        //Correccion de CodeGenerator
         /*code.append("\nsection .text\n");
         code.append("global _start\n\n");
         code.append("_start:\n");
