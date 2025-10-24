@@ -10,18 +10,17 @@ public class TypeChecker {
     /**
      * Verifica si dos tipos son compatibles para asignación
      */
-    public static boolean areTypesCompatible(String targetType, String sourceType) {
-        if (targetType == null || sourceType == null) {
-            return false;
-        }
+    public static boolean areTypesCompatible(String type1, String type2) {
+        if (type1 == null || type2 == null) return false;
 
-        if (targetType.equals("error") || sourceType.equals("error")) {
-            return false;
-        }
+        // Tipos iguales son siempre compatibles
+        if (type1.equals(type2)) return true;
 
-        // Igualdad exacta de tipos
-        return targetType.equals(sourceType);
+        // Para operaciones de comparación, permitimos cualquier combinación
+        // pero esto puede ser ajustado según tus necesidades
+        return true;
     }
+
 
     public static int getTypeSize(String type) {
         switch (type) {

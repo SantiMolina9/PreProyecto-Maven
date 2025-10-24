@@ -41,6 +41,8 @@ terminal           PLUS, MINUS, TIMES, DIVIDE;
 terminal           LPAREN, RPAREN, LBRACE, RBRACE;
 terminal           INT, BOOL, VOID, MAIN, RETURN;
 terminal           TRUE, FALSE;
+terminal           IF, ELSE, WHILE;
+terminal           AND, OR, EQ, LT, GT, NOT;
 terminal Integer   NUMBER;
 terminal String    ID;
 
@@ -57,16 +59,23 @@ non terminal AssignmentNode     assignment;
 non terminal ReturnStmtNode     return_stmt;
 non terminal ExprNode           expr;
 non terminal List               var_list;
+non terminal IfStmtNode         if_stmt;
+non terminal WhileStmtNode      while_stmt;
+
 
 /* Precedence */
 precedence left PLUS, MINUS;
 precedence left TIMES, DIVIDE;
+precedence left OR;
+precedence left AND;
+precedence left EQ;
+precedence left LT, GT;
+precedence right NOT;
 
 /* Grammar Rules */
 
 program ::= function_def:f
             {:
-                System.out.println("AST generado exitosamente!");
                 RESULT = new ProgramNode(f);
             :}
             ;
@@ -151,7 +160,22 @@ stmt ::= declaration:d SEMI
          {:
              RESULT = new ExprStmtNode(e);
          :}
+         | if_stmt:stmts         {: RESULT = stmts; :}
+         | while_stmt:stmts      {: RESULT = stmts; :}
          ;
+
+if_stmt ::=
+    IF LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
+    {: RESULT = new IfStmtNode(cond, then_stmts, null); :}
+    | IF LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
+      ELSE LBRACE stmt_list:else_stmts RBRACE
+    {: RESULT = new IfStmtNode(cond, then_stmts, else_stmts); :}
+    ;
+
+while_stmt ::=
+    WHILE LPAREN expr:cond RPAREN LBRACE stmt_list:body RBRACE
+    {: RESULT = new WhileStmtNode(cond, body); :}
+    ;
 
 declaration ::= type:t var_list:vl
                 {:
@@ -249,5 +273,35 @@ expr ::= expr:e1 PLUS expr:e2
          ID:id
          {:
              RESULT = new VariableNode(id);
+         :}
+         |
+         expr:left AND expr:right
+         {:
+            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.AND, right);
+         :}
+         |
+         expr:left OR expr:right
+         {:
+            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.OR, right);
+         :}
+         |
+         expr:left EQ expr:right
+         {:
+            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.EQ, right);
+         :}
+         |
+         expr:left LT expr:right
+         {:
+            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.LT, right);
+         :}
+         |
+         expr:left GT expr:right
+         {:
+            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.GT, right);
+         :}
+         |
+         NOT expr:e
+         {:
+            RESULT = new UnaryOpNode(UnaryOpNode.Operator.NOT, e);
          :}
          ;

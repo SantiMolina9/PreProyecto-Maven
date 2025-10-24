@@ -52,8 +52,8 @@ public class CompilerMain {
             return;
         }
 
-        System.out.println("\n✓ Parseo completado satisfactoriamente!");
-        System.out.println("AST: " + ast);
+        //System.out.println("\n✓ Parseo completado satisfactoriamente!");
+        //System.out.println("AST: " + ast);
 
         // Fase 2: Análisis Semántico
         ErrorHandler errorHandler = new ErrorHandler();
@@ -64,9 +64,9 @@ public class CompilerMain {
         // En compileFile(), después del análisis semántico exitoso:
         if (!errorHandler.hasErrors()) {
             // Fase 3: Generación de código
-            System.out.println("\n" + "=".repeat(60));
-            System.out.println("GENERACIÓN DE CÓDIGO ASSEMBLER");
-            System.out.println("=".repeat(60));
+            //System.out.println("\n" + "=".repeat(60));
+            //System.out.println("GENERACIÓN DE CÓDIGO ASSEMBLER");
+            //System.out.println("=".repeat(60));
 
             CodeGenerator codeGenerator = new CodeGenerator(semanticAnalyzer.getSymbolTable());
             String assemblyCode = (String) ast.accept(codeGenerator);
@@ -77,9 +77,9 @@ public class CompilerMain {
                 out.println(assemblyCode);
             }
 
-            System.out.println("✓ Código assembler generado: " + asmFilename);
-            System.out.println("Código generado:");
-            System.out.println(assemblyCode);
+            System.out.println("✓ Código assembler generado en: " + asmFilename);
+            //System.out.println("Código generado:");
+            //System.out.println(assemblyCode);
         }
 
         // Imprimir resumen
@@ -136,7 +136,7 @@ public class CompilerMain {
         }
 
         ProgramNode ast = (ProgramNode) result.value;
-        System.out.println("\n✓ Parseo completado satisfactoriamente!");
+        //System.out.println("\n✓ Parseo completado satisfactoriamente!");
 
         ErrorHandler errorHandler = new ErrorHandler();
         SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(errorHandler);

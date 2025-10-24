@@ -261,6 +261,77 @@ public class CodeGenerator implements ASTVisitor {
     }
 
     // ========== VISITANTES DE EXPRESIONES ==========
+    @Override
+    public Object visitIfStmt(IfStmtNode node) {
+        String elseLabel = generateLabel("else");
+        String endLabel = generateLabel("endif");
+
+        // Evaluar condición
+        node.getCondition().accept(this);
+        emit("cmp eax, 0");
+
+        if (node.hasElseBranch()) {
+            emit("je " + elseLabel);
+
+            // Rama then
+            for (StmtNode stmt : node.getThenBranch()) {
+                stmt.accept(this);
+            }
+            emit("jmp " + endLabel);
+
+            // Rama else
+            emitLabel(elseLabel);
+            for (StmtNode stmt : node.getElseBranch()) {
+                stmt.accept(this);
+            }
+        } else {
+            emit("je " + endLabel);
+
+            // Rama then
+            for (StmtNode stmt : node.getThenBranch()) {
+                stmt.accept(this);
+            }
+        }
+
+        emitLabel(endLabel);
+        return null;
+    }
+
+    @Override
+    public Object visitUnaryOp(UnaryOpNode node) {
+        node.getOperand().accept(this);
+
+        switch (node.getOperator()) {
+            case NOT:
+                emit("xor eax, 1"); // Invertir el valor booleano
+                break;
+        }
+
+        return null;
+    }
+
+    @Override
+    public Object visitWhileStmt(WhileStmtNode node) {
+        String startLabel = generateLabel("while_start");
+        String endLabel = generateLabel("while_end");
+
+        emitLabel(startLabel);
+
+        // Evaluar condición
+        node.getCondition().accept(this);
+        emit("cmp eax, 0");
+        emit("je " + endLabel);
+
+        // Cuerpo del while
+        for (StmtNode stmt : node.getBody()) {
+            stmt.accept(this);
+        }
+
+        emit("jmp " + startLabel);
+        emitLabel(endLabel);
+
+        return null;
+    }
 
     @Override
     public Object visitBinaryOp(BinaryOpNode node) {
@@ -293,8 +364,32 @@ public class CodeGenerator implements ASTVisitor {
                 emit("cdq"); // Extender eax a edx:eax
                 emit("idiv ebx");
                 break;
-        }
+            case LT:
+                emit("cmp ebx, eax");
+                emit("setl al");
+                emit("movzx eax, al");
+                break;
 
+            case GT:
+                emit("cmp ebx, eax");
+                emit("setg al");
+                emit("movzx eax, al");
+                break;
+
+            case EQ:
+                emit("cmp ebx, eax");
+                emit("sete al");
+                emit("movzx eax, al");
+                break;
+
+            case AND:
+                emit("and eax, ebx");
+                break;
+
+            case OR:
+                emit("or eax, ebx");
+                break;
+        }
         return null;
     }
 
@@ -381,7 +476,7 @@ public class CodeGenerator implements ASTVisitor {
         for (String line : dataSection) {
             code.append(line).append("\n");
         }
-        //Correccion de CodeGenerator
+        //Correccion de CodeGenerator   
         /*code.append("\nsection .text\n");
         code.append("global _start\n\n");
         code.append("_start:\n");
@@ -395,6 +490,8 @@ public class CodeGenerator implements ASTVisitor {
             code.append(line).append("\n");
         }
     }
+
+
 
     public String getGeneratedCode() {
         return code.toString();

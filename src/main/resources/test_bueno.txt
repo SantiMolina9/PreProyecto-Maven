@@ -1,6 +1,24 @@
 int main() {
     int x = 10;
     int y = 20;
-    int result = x + y;
-    return x;
+    bool result;
+    int a;
+    int b;
+    int c;
+    int i;
+
+    if (x > 10) {
+        y = 20;
+    } else {
+        y = 30;
+    }
+
+    while (i < 100) {
+        i = i + 1;
+    }
+
+    if (a == b && c > 5) {
+        result = true;
+    }
+    return result;
 }

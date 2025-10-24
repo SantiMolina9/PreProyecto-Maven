@@ -7,7 +7,7 @@ import ast.visitor.ASTVisitor;
  */
 public class BinaryOpNode extends ExprNode {
     public enum Operator {
-        PLUS, MINUS, TIMES, DIVIDE
+        PLUS, MINUS, TIMES, DIVIDE, AND, OR, EQ, LT, GT
     }
 
     private ExprNode left;
@@ -32,6 +32,11 @@ public class BinaryOpNode extends ExprNode {
             case MINUS: op = "-"; break;
             case TIMES: op = "*"; break;
             case DIVIDE: op = "/"; break;
+            case AND: op = "&&"; break;
+            case OR: op = "||"; break;
+            case EQ: op = "=="; break;
+            case LT: op = "<"; break;
+            case GT: op = ">"; break;
         }
         return "(" + left + " " + op + " " + right + ")";
     }

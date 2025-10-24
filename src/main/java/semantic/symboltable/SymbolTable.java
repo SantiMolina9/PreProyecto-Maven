@@ -199,7 +199,7 @@ public class SymbolTable {
     /**
      * Imprime la tabla de símbolos completa de forma jerárquica
      */
-    public void printSymbolTable() {
+    /*public void printSymbolTable() {
         System.out.println("\n" + "=".repeat(50));
         System.out.println("SYMBOL TABLE");
         System.out.println("=".repeat(50));
@@ -218,7 +218,7 @@ public class SymbolTable {
         for (Scope child : scope.getChildren()) {
             printScope(child, indent + 1);
         }
-    }
+    }*/
 
     /**
      * Imprime estadísticas de la tabla de símbolos
@@ -228,12 +228,12 @@ public class SymbolTable {
         int totalScopes = countScopes(globalScope);
 
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("SYMBOL TABLE STATISTICS");
+        System.out.println("ESTADISTICAS TABLA DE SIMBOLOS");
         System.out.println("=".repeat(50));
-        System.out.println("Total scopes:        " + totalScopes);
-        System.out.println("Total symbols:       " + totalSymbols);
-        System.out.println("Current scope:       " + currentScope.getScopeName());
-        System.out.println("Current scope level: " + currentScope.getLevel());
+        //System.out.println("Total scopes:        " + totalScopes);
+        System.out.println("Simbolos totales:       " + totalSymbols);
+        //System.out.println("Current scope:       " + currentScope.getScopeName());
+        //System.out.println("Current scope level: " + currentScope.getLevel());
         System.out.println("=".repeat(50));
     }
 

@@ -50,11 +50,11 @@ public class ErrorHandler {
         System.out.println("Errores: " + errors.size());
         System.out.println("Warnings: " + warnings.size());
 
-        if (hasErrors) {
+        /*if (hasErrors) {
             System.out.println("\nCompilacion fallida!");
         } else {
             System.out.println("\nCompilacion exitosa!");
-        }
+        }*/
     }
 
     public void reset() {

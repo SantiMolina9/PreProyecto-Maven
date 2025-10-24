@@ -26,4 +26,7 @@ public interface ASTVisitor {
     Object visitNumber(NumberNode node);
     Object visitBoolean(BooleanNode node);
     Object visitVariable(VariableNode node);
+    Object visitIfStmt(IfStmtNode node);
+    Object visitWhileStmt(WhileStmtNode node);
+    Object visitUnaryOp(UnaryOpNode node);
 }

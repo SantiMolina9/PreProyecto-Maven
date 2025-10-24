@@ -10,14 +10,6 @@ import semantic.errors.*;
 
 import java.util.List;
 
-/**
- * Analizador semántico principal que implementa el patrón Visitor.
- * Coordina el análisis semántico usando componentes especializados:
- * - SymbolTable para gestión de símbolos
- * - TypeChecker para verificación de tipos
- * - ExpressionEvaluator para evaluación de expresiones
- * - ErrorHandler para gestión de errores y warnings
- */
 public class SemanticAnalyzer implements ASTVisitor {
     private SymbolTable symbolTable;
     private ErrorHandler errorHandler;
@@ -49,14 +41,14 @@ public class SemanticAnalyzer implements ASTVisitor {
     @Override
     public Object visitProgram(ProgramNode node) {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("INICIO DEL ANALISIS SEMANTICO");
+        System.out.println("ANALISIS SEMANTICO");
         System.out.println("=".repeat(50));
 
         node.getMainFunction().accept(this);
 
-        System.out.println("\n" + "=".repeat(50));
+        /*System.out.println("\n" + "=".repeat(50));
         System.out.println("ANALISIS SEMANTICO COMPLETADO");
-        System.out.println("=".repeat(50));
+        System.out.println("=".repeat(50));*/
 
         return null;
     }
@@ -68,7 +60,7 @@ public class SemanticAnalyzer implements ASTVisitor {
 
         currentFunctionReturnType = returnType;
 
-        System.out.println("\n→ Analyzing function: " + functionName + " (" + returnType + ")");
+        System.out.println("\n→ Analizando funcion: " + functionName + " (" + returnType + ")");
 
         symbolTable.enterScope("function_" + functionName);
 
@@ -151,13 +143,13 @@ public class SemanticAnalyzer implements ASTVisitor {
 
                 Object initValue = expressionEvaluator.evaluate(initExpr);
                 symbolTable.declare(varName, type, initValue, -1, -1);
-                System.out.println("  ✓ Declared and initialized: " + varName + " = " + initValue);
+                System.out.println("  ✓ Declarada e inicializada: " + varName + " = " + initValue);
             } else {
                 symbolTable.declare(varName, type, -1, -1);
-                System.out.println("  ✓ Declared: " + varName + " : " + type);
+                System.out.println("  ✓ Declarada: " + varName + " : " + type);
                 errorHandler.addWarning(
                         new CompilerError(-1, -1,
-                                "Variable '" + varName + "' declared but not initialized",
+                                "Variable '" + varName + "' declarada pero no inicializada",
                                 "WARNING")
                 );
             }
@@ -181,7 +173,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (entry == null) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Variable '" + varName + "' is not declared",
+                            "Variable " + varName + " no declarada",
                             "ERROR SEMANTICO")
             );
             return null;
@@ -241,6 +233,79 @@ public class SemanticAnalyzer implements ASTVisitor {
         return node.getExpression().accept(this);
     }
 
+    @Override
+    public Object visitIfStmt(IfStmtNode node) {
+        // Verificar que la condición es booleana
+        String condType = (String) node.getCondition().accept(this);
+        if (!"bool".equals(condType)) {
+            errorHandler.addError(
+                    new CompilerError(-1, -1,
+                            "Condition in if statement must be boolean, got: " + condType,
+                            "ERROR SEMANTICO")
+            );
+        }
+
+        // Analizar rama then
+        symbolTable.enterScope("if_then");
+        for (StmtNode stmt : node.getThenBranch()) {
+            stmt.accept(this);
+        }
+        symbolTable.exitScope();
+
+        // Analizar rama else si existe
+        if (node.hasElseBranch()) {
+            symbolTable.enterScope("if_else");
+            for (StmtNode stmt : node.getElseBranch()) {
+                stmt.accept(this);
+            }
+            symbolTable.exitScope();
+        }
+
+        return null;
+    }
+
+    @Override
+    public Object visitWhileStmt(WhileStmtNode node) {
+        // Verificar que la condición es booleana
+        String condType = (String) node.getCondition().accept(this);
+        if (!"bool".equals(condType)) {
+            errorHandler.addError(
+                    new CompilerError(-1, -1,
+                            "Condition in while statement must be boolean, got: " + condType,
+                            "ERROR SEMANTICO")
+            );
+        }
+
+        // Analizar cuerpo del while
+        symbolTable.enterScope("while_body");
+        for (StmtNode stmt : node.getBody()) {
+            stmt.accept(this);
+        }
+        symbolTable.exitScope();
+
+        return null;
+    }
+
+    @Override
+    public Object visitUnaryOp(UnaryOpNode node) {
+        String operandType = (String) node.getOperand().accept(this);
+
+        if (node.getOperator() == UnaryOpNode.Operator.NOT) {
+            if (!"bool".equals(operandType)) {
+                errorHandler.addError(
+                        new CompilerError(-1, -1,
+                                "NOT operator requires boolean operand, got: " + operandType,
+                                "ERROR SEMANTICO")
+                );
+                return "error";
+            }
+            return "bool";
+        }
+
+        return "error";
+    }
+
+
     // ========== VISITANTES PARA EXPRESIONES ==========
 
     @Override
@@ -257,16 +322,47 @@ public class SemanticAnalyzer implements ASTVisitor {
             return "error";
         }
 
-        if (!TypeChecker.isArithmeticType(leftType)) {
-            errorHandler.addError(
-                    new CompilerError(-1, -1,
-                            "Arithmetic operations are only supported for int type, got: " + leftType,
-                            "ERROR SEMANTICO")
-            );
-            return "error";
-        }
+        switch (node.getOperator()) {
+            case PLUS: case MINUS: case TIMES: case DIVIDE:
+                if (!TypeChecker.isArithmeticType(leftType)) {
+                    errorHandler.addError(
+                            new CompilerError(-1, -1,
+                                    "Arithmetic operations require numeric types, got: " + leftType,
+                                    "ERROR SEMANTICO")
+                    );
+                    return "error";
+                }
+                return "int";
 
-        return "int";
+            case LT: case GT:
+                if (!TypeChecker.isArithmeticType(leftType)) {
+                    errorHandler.addError(
+                            new CompilerError(-1, -1,
+                                    "Comparison operations require numeric types, got: " + leftType,
+                                    "ERROR SEMANTICO")
+                    );
+                    return "error";
+                }
+                return "bool";
+
+            case EQ:
+                // EQ funciona para cualquier tipo compatible
+                return "bool";
+
+            case AND: case OR:
+                if (!"bool".equals(leftType)) {
+                    errorHandler.addError(
+                            new CompilerError(-1, -1,
+                                    "Logical operations require boolean types, got: " + leftType,
+                                    "ERROR SEMANTICO")
+                    );
+                    return "error";
+                }
+                return "bool";
+
+            default:
+                return "error";
+        }
     }
 
     @Override
@@ -322,11 +418,11 @@ public class SemanticAnalyzer implements ASTVisitor {
      * Imprime un resumen del análisis semántico
      */
     public void printSummary() {
-        System.out.println("\n" + "=".repeat(50));
+        /*System.out.println("\n" + "=".repeat(50));
         System.out.println("RESUMEN DEL ANALISIS SEMANTICO");
-        System.out.println("=".repeat(50));
+        System.out.println("=".repeat(50));*/
 
-        symbolTable.printSymbolTable();
+        //symbolTable.printSymbolTable();
         symbolTable.printStatistics();
 
         errorHandler.printSummary();
