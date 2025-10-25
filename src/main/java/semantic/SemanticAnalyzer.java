@@ -393,7 +393,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             errorHandler.addWarning(
                     new CompilerError(-1, -1,
                             "La variable '" + varName + "' se utiliza antes de ser inicializada",
-                            "WARNING")
+                            "ADVERTENCIA")
             );
         }
 
