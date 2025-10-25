@@ -8,7 +8,8 @@ public class UnaryOpNode extends ExprNode {
     private Operator operator;
     private ExprNode operand;
 
-    public UnaryOpNode(Operator operator, ExprNode operand) {
+    public UnaryOpNode(int line, int column, Operator operator, ExprNode operand) {
+        super(line, column);
         this.operator = operator;
         this.operand = operand;
     }

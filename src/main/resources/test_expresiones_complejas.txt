@@ -1,0 +1,29 @@
+int main() {
+    int a = 5;
+    int b = 10;
+    int c = 15;
+    bool flag = true;
+    
+    int resultado1 = ((a + b) * c) / (b - a);
+    int resultado2 = a * b + c * (a - b);
+    
+    bool cond1 = (a > 0) && (b < 20) && (c == 15);
+    bool cond2 = (a == b) || (b == c) || flag;
+    bool cond3 = !(a > b) && (c < 100);
+    bool cond4 = (a < b && b < c) || flag;
+    
+    bool resultado3 = ((a + b) > c) && flag || (b * 2) == (c + a);
+    
+    if ((a > 0 && b > 0) && (c < 100 || flag)) {
+        resultado1 = a + b + c;
+    }
+    
+    while (a < b && b < c && flag) {
+        a = a + 1;
+        if (a > 10) {
+            flag = false;
+        }
+    }
+    
+    return resultado1;
+}

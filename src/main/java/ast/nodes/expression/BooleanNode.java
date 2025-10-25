@@ -8,7 +8,8 @@ import ast.visitor.ASTVisitor;
 public class BooleanNode extends ExprNode {
     private boolean value;
 
-    public BooleanNode(boolean value) {
+    public BooleanNode(int line, int column, boolean value) {
+        super(line, column);
         this.value = value;
     }
 

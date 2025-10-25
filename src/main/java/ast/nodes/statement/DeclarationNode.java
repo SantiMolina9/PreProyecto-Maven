@@ -10,7 +10,8 @@ public class DeclarationNode extends StmtNode {
     private String type;
     private List<VarDeclNode> variables;
 
-    public DeclarationNode(String type, List<VarDeclNode> variables) {
+    public DeclarationNode(int line, int column, String type, List<VarDeclNode> variables) {
+        super(line, column);
         this.type = type;
         this.variables = variables;
     }

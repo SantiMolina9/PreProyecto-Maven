@@ -10,7 +10,8 @@ public class AssignmentNode extends StmtNode {
     private String variableName;
     private ExprNode expression;
 
-    public AssignmentNode(String variableName, ExprNode expression) {
+    public AssignmentNode(int line, int column, String variableName, ExprNode expression) {
+        super(line, column);
         this.variableName = variableName;
         this.expression = expression;
     }

@@ -1,0 +1,54 @@
+int main() {
+    int num1 = 100;
+    int num2 = 50;
+    int num3 = 25;
+    int resultado = 0;
+    bool activo = true;
+    bool procesado = false;
+    
+    resultado = num1 + num2 - num3;
+    resultado = resultado * 2;
+    resultado = resultado / num3;
+    
+    bool todas_activas = activo && procesado;
+    bool alguna_activa = activo || procesado;
+    bool no_procesado = !procesado;
+    
+    if (num1 > num2) {
+        if (num2 > num3) {
+            resultado = num1 + num2 + num3;
+        }
+    }
+    
+    int contador = 0;
+    while (contador < 10) {
+        if (contador == 5) {
+            activo = false;
+        }
+        contador = contador + 1;
+    }
+    
+    if ((num1 > 50) && (num2 < 100) || activo) {
+        if (no_procesado && (contador == 10)) {
+            resultado = resultado + 100;
+        } else {
+            resultado = resultado - 50;
+        }
+    }
+    
+    int i = 0;
+    int j = 100;
+    while ((i < j) && activo) {
+        i = i + 1;
+        j = j - 1;
+        
+        if (i == j) {
+            activo = false;
+        }
+    }
+    
+    int final = ((num1 * num2) / num3 + contador - i) + j;
+    bool check = ((num1 > num2) && (num2 > num3)) || (final < 0);
+    
+    return final;
+}

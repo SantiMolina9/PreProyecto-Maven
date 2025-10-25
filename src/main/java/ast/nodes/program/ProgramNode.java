@@ -9,7 +9,8 @@ import ast.visitor.ASTVisitor;
 public class ProgramNode extends ASTNode {
     private FunctionDefNode mainFunction;
 
-    public ProgramNode(FunctionDefNode mainFunction) {
+    public ProgramNode(int line, int column, FunctionDefNode mainFunction) {
+        super(line, column);
         this.mainFunction = mainFunction;
     }
 

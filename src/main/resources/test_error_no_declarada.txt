@@ -1,0 +1,14 @@
+int main() {
+    int x = 10;
+    int y = 20;
+    
+    int z = w + x;
+    
+    resultado = x + y;
+    
+    if (num > 10) {
+        x = 5;
+    }
+    
+    return x;
+}

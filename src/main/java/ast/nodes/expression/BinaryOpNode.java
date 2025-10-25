@@ -14,7 +14,8 @@ public class BinaryOpNode extends ExprNode {
     private Operator operator;
     private ExprNode right;
 
-    public BinaryOpNode(ExprNode left, Operator operator, ExprNode right) {
+    public BinaryOpNode(int line, int column, ExprNode left, Operator operator, ExprNode right) {
+        super(line, column);
         this.left = left;
         this.operator = operator;
         this.right = right;

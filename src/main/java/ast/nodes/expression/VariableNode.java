@@ -8,7 +8,8 @@ import ast.visitor.ASTVisitor;
 public class VariableNode extends ExprNode {
     private String name;
 
-    public VariableNode(String name) {
+    public VariableNode(int line, int column, String name) {
+        super(line, column);
         this.name = name;
     }
 

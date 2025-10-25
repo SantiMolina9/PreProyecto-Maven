@@ -9,7 +9,7 @@
 /* --------------------------Usercode Section------------------------ */
 import com.ejemplo.parser.sym;
 import java_cup.runtime.*;
-
+import semantic.errors.ErrorHandler;
 
 %%
 
@@ -21,6 +21,9 @@ import java_cup.runtime.*;
 */
 %class Lexer
 
+%{
+    private ErrorHandler errorHandler = ErrorHandler.getInstance();
+%}
 /*
   The current line number can be accessed with the variable yyline
   and the current column number with the variable yycolumn.
@@ -147,4 +150,9 @@ identifier = [A-Za-z_][A-Za-z_0-9]*
 
 /* No token was found for the input so through an error.  Print out an
    Illegal character message with the illegal character that was found. */
-[^]                    { throw new Error("Illegal character <"+yytext()+">"); }
+/* En tu archivo .flex, actualiza la última regla: */
+
+[^]  {
+    errorHandler.addLexicalError(yyline + 1, yycolumn + 1,
+                                 "Carácter ilegal: '" + yytext() + "'");
+}

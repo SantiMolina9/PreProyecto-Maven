@@ -8,7 +8,8 @@ import ast.visitor.ASTVisitor;
 public class NumberNode extends ExprNode {
     private int value;
 
-    public NumberNode(int value) {
+    public NumberNode(int line, int column, int value) {
+        super(line, column);
         this.value = value;
     }
 

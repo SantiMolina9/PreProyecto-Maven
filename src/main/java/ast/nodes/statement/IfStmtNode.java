@@ -8,7 +8,8 @@ public class IfStmtNode extends StmtNode {
     private List<StmtNode> thenBranch;
     private List<StmtNode> elseBranch;
 
-    public IfStmtNode(ExprNode condition, List<StmtNode> thenBranch, List<StmtNode> elseBranch) {
+    public IfStmtNode(int line, int column, ExprNode condition, List<StmtNode> thenBranch, List<StmtNode> elseBranch) {
+        super(line, column);
         this.condition = condition;
         this.thenBranch = thenBranch;
         this.elseBranch = elseBranch;

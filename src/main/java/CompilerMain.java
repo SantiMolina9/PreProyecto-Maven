@@ -13,16 +13,20 @@ import java_cup.runtime.Symbol;
  */
 public class CompilerMain {
 
+    // Flag para indicar si estamos en modo test
+    private static boolean testMode = false;
+
     public static void main(String[] args) {
 
-        //Ejecucion hardcodeda
+        //Ejecucion hardcodeada
         if (args.length == 0) {
             args = new String[]{"src/main/resources/test_bueno.txt"};
         }
 
         if (args.length < 1) {
             System.err.println("Usage: java CompilerMain <input_file>");
-            System.exit(1);
+            exitWithCode(1);
+            return;
         }
 
         String inputFile = args[0];
@@ -32,7 +36,23 @@ public class CompilerMain {
         } catch (Exception e) {
             System.err.println("Error de compilacion: " + e.getMessage());
             e.printStackTrace();
-            System.exit(1);
+            exitWithCode(1);
+        }
+    }
+
+    /**
+     * Activa el modo test (no hace System.exit)
+     */
+    public static void setTestMode(boolean mode) {
+        testMode = mode;
+    }
+
+    /**
+     * Sale del programa solo si no estamos en modo test
+     */
+    private static void exitWithCode(int code) {
+        if (!testMode) {
+            System.exit(code);
         }
     }
 
@@ -52,22 +72,15 @@ public class CompilerMain {
             return;
         }
 
-        //System.out.println("\n✓ Parseo completado satisfactoriamente!");
-        //System.out.println("AST: " + ast);
-
         // Fase 2: Análisis Semántico
-        ErrorHandler errorHandler = new ErrorHandler();
-        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(errorHandler);
+        ErrorHandler errorHandler = ErrorHandler.getInstance();
+        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
 
         ast.accept(semanticAnalyzer);
 
         // En compileFile(), después del análisis semántico exitoso:
         if (!errorHandler.hasErrors()) {
             // Fase 3: Generación de código
-            //System.out.println("\n" + "=".repeat(60));
-            //System.out.println("GENERACIÓN DE CÓDIGO ASSEMBLER");
-            //System.out.println("=".repeat(60));
-
             CodeGenerator codeGenerator = new CodeGenerator(semanticAnalyzer.getSymbolTable());
             String assemblyCode = (String) ast.accept(codeGenerator);
 
@@ -78,8 +91,6 @@ public class CompilerMain {
             }
 
             System.out.println("✓ Código assembler generado en: " + asmFilename);
-            //System.out.println("Código generado:");
-            //System.out.println(assemblyCode);
         }
 
         // Imprimir resumen
@@ -90,14 +101,12 @@ public class CompilerMain {
         if (errorHandler.hasErrors()) {
             System.out.println("❌ COMPILACION FALLIDA");
             System.out.println("=".repeat(60));
-            System.exit(1);
+            exitWithCode(1); // Usa exitWithCode en lugar de System.exit
         } else {
             System.out.println("✓ COMPILACION EXITOSA");
             System.out.println("=".repeat(60));
         }
     }
-
-
 
     /**
      * Realiza el parsing de un archivo
@@ -136,10 +145,9 @@ public class CompilerMain {
         }
 
         ProgramNode ast = (ProgramNode) result.value;
-        //System.out.println("\n✓ Parseo completado satisfactoriamente!");
 
-        ErrorHandler errorHandler = new ErrorHandler();
-        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(errorHandler);
+        ErrorHandler errorHandler = ErrorHandler.getInstance();
+        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
 
         ast.accept(semanticAnalyzer);
         semanticAnalyzer.printSummary();

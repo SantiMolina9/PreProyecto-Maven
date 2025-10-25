@@ -9,7 +9,8 @@ import ast.visitor.ASTVisitor;
 public class ExprStmtNode extends StmtNode {
     private ExprNode expression;
 
-    public ExprStmtNode(ExprNode expression) {
+    public ExprStmtNode(int line, int column, ExprNode expression) {
+        super(line, column);
         this.expression = expression;
     }
 

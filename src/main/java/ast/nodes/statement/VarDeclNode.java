@@ -11,7 +11,8 @@ public class VarDeclNode extends ASTNode {
     private String name;
     private ExprNode initialValue;
 
-    public VarDeclNode(String name, ExprNode initialValue) {
+    public VarDeclNode(int line, int column, String name, ExprNode initialValue) {
+        super(line, column);
         this.name = name;
         this.initialValue = initialValue;
     }

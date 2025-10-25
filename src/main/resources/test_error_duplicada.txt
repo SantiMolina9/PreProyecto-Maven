@@ -1,0 +1,13 @@
+int main() {
+    int x = 10;
+    
+    int x = 20;
+    
+    int y = 5, y = 10;
+    
+    bool flag = true;
+    
+    bool flag = false;
+    
+    return x;
+}

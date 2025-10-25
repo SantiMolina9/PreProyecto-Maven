@@ -1,0 +1,62 @@
+int main() {
+    int x = 10;
+    int y = 20;
+    int z;
+    bool flag = true;
+    bool check = false;
+    bool result;
+
+    z = x + y;
+    result = flag || check;
+
+    int suma = x + y;
+    int resta = y - x;
+    int producto = x * y;
+    int division = y / x;
+
+    bool and_result = flag && check;
+    bool or_result = flag || check;
+    bool not_result = !flag;
+
+    bool mayor = x > y;
+    bool menor = x < y;
+    bool igual = x == y;
+
+    if (x > 5) {
+        z = 100;
+    }
+
+    if (y > x) {
+        result = true;
+    } else {
+        result = false;
+    }
+
+    if (x > 0) {
+        if (y > 0) {
+            z = x + y;
+        } else {
+            z = x - y;
+        }
+    } else {
+        z = 0;
+    }
+
+    int contador = 0;
+    while (contador < 10) {
+        contador = contador + 1;
+    }
+
+    int i = 0;
+    int j = 10;
+    while (i < j && flag) {
+        i = i + 1;
+        j = j - 1;
+    }
+
+    int expr1 = (x + y) * z;
+    int expr2 = x * (y + z);
+    bool expr3 = (x > 0) && (y < 100) || (z == 50);
+
+    return x + y + z;
+}

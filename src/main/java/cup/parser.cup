@@ -12,21 +12,23 @@ import ast.nodes.program.FunctionDefNode;
 import ast.nodes.program.ParamNode;
 import ast.nodes.program.ProgramNode;
 import ast.nodes.statement.*;
+import semantic.errors.ErrorHandler;
 
 parser code {:
+    private ErrorHandler errorHandler = ErrorHandler.getInstance();
 
     public void report_error(String message, Object info) {
-        StringBuffer m = new StringBuffer("Error");
         if (info instanceof java_cup.runtime.Symbol) {
             java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
             if (s.left >= 0) {
-                m.append(" in line "+(s.left+1));
-                if (s.right >= 0)
-                    m.append(", column "+(s.right+1));
+                int line = s.left + 1;
+                int column = (s.right >= 0) ? s.right + 1 : 0;
+                errorHandler.addSyntaxError(line, column, message);
+                return;
             }
         }
-        m.append(" : "+message);
-        System.err.println(m);
+        // Si no hay información de posición
+        errorHandler.addSyntaxError(-1, -1, message);
     }
 
     public void report_fatal_error(String message, Object info) {
@@ -76,7 +78,7 @@ precedence right NOT;
 
 program ::= function_def:f
             {:
-                RESULT = new ProgramNode(f);
+                RESULT = new ProgramNode(fleft, fright, f);
             :}
             ;
 
@@ -84,7 +86,7 @@ function_def ::= type:t MAIN LPAREN param_list_opt:p RPAREN LBRACE stmt_list:s R
                  {:
                      List<ParamNode> params = (p != null) ? (List<ParamNode>)p : new ArrayList<ParamNode>();
                      List<StmtNode> statements = (List<StmtNode>)s;
-                     RESULT = new FunctionDefNode(t, "main", params, statements);
+                     RESULT = new FunctionDefNode(tleft, tright, t, "main", params, statements);
                  :}
                  ;
 
@@ -112,7 +114,7 @@ param_list ::= param_list:pl COMMA param:p
 
 param ::= type:t ID:id
           {:
-              RESULT = new ParamNode(t, id);
+              RESULT = new ParamNode(tleft, tright, t, id);
           :}
           ;
 
@@ -158,96 +160,96 @@ stmt ::= declaration:d SEMI
          |
          expr:e SEMI
          {:
-             RESULT = new ExprStmtNode(e);
+             RESULT = new ExprStmtNode(eleft, eright, e);
          :}
          | if_stmt:stmts         {: RESULT = stmts; :}
          | while_stmt:stmts      {: RESULT = stmts; :}
          ;
 
 if_stmt ::=
-    IF LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
-    {: RESULT = new IfStmtNode(cond, then_stmts, null); :}
-    | IF LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
+    IF:i LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
+    {: RESULT = new IfStmtNode(ileft, iright, cond, then_stmts, null); :}
+    | IF:i LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
       ELSE LBRACE stmt_list:else_stmts RBRACE
-    {: RESULT = new IfStmtNode(cond, then_stmts, else_stmts); :}
+    {: RESULT = new IfStmtNode(ileft, iright, cond, then_stmts, else_stmts); :}
     ;
 
 while_stmt ::=
-    WHILE LPAREN expr:cond RPAREN LBRACE stmt_list:body RBRACE
-    {: RESULT = new WhileStmtNode(cond, body); :}
+    WHILE:w LPAREN expr:cond RPAREN LBRACE stmt_list:body RBRACE
+    {: RESULT = new WhileStmtNode(wleft, wright, cond, body); :}
     ;
 
 declaration ::= type:t var_list:vl
                 {:
                     List<VarDeclNode> variables = (List<VarDeclNode>)vl;
-                    RESULT = new DeclarationNode(t, variables);
+                    RESULT = new DeclarationNode(tleft, tright, t, variables);
                 :}
                 ;
 
 var_list ::= var_list:vl COMMA ID:id
              {:
                  List<VarDeclNode> list = (List<VarDeclNode>)vl;
-                 list.add(new VarDeclNode(id, null));
+                 list.add(new VarDeclNode(idleft, idright, id, null));
                  RESULT = list;
              :}
              |
              var_list:vl COMMA ID:id ASSIGN expr:e
              {:
                  List<VarDeclNode> list = (List<VarDeclNode>)vl;
-                 list.add(new VarDeclNode(id, e));
+                 list.add(new VarDeclNode(idleft, idright, id, e));
                  RESULT = list;
              :}
              |
              ID:id
              {:
                  List<VarDeclNode> list = new ArrayList<VarDeclNode>();
-                 list.add(new VarDeclNode(id, null));
+                 list.add(new VarDeclNode(idleft, idright, id, null));
                  RESULT = list;
              :}
              |
              ID:id ASSIGN expr:e
              {:
                  List<VarDeclNode> list = new ArrayList<VarDeclNode>();
-                 list.add(new VarDeclNode(id, e));
+                 list.add(new VarDeclNode(idleft, idright, id, e));
                  RESULT = list;
              :}
              ;
 
 assignment ::= ID:id ASSIGN expr:e
                {:
-                   RESULT = new AssignmentNode(id, e);
+                   RESULT = new AssignmentNode(idleft, idright, id, e);
                :}
                ;
 
-return_stmt ::= RETURN expr:e
+return_stmt ::= RETURN:r expr:e
                 {:
-                    RESULT = new ReturnStmtNode(e);
+                    RESULT = new ReturnStmtNode(rleft, rright, e);
                 :}
                 |
-                RETURN
+                RETURN:r
                 {:
-                    RESULT = new ReturnStmtNode(null);
+                    RESULT = new ReturnStmtNode(rleft, rright, null);
                 :}
                 ;
 
-expr ::= expr:e1 PLUS expr:e2
+expr ::= expr:e1 PLUS:op expr:e2
          {:
-             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.PLUS, e2);
+             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.PLUS, e2);
          :}
          |
-         expr:e1 MINUS expr:e2
+         expr:e1 MINUS:op expr:e2
          {:
-             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.MINUS, e2);
+             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.MINUS, e2);
          :}
          |
-         expr:e1 TIMES expr:e2
+         expr:e1 TIMES:op expr:e2
          {:
-             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.TIMES, e2);
+             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.TIMES, e2);
          :}
          |
-         expr:e1 DIVIDE expr:e2
+         expr:e1 DIVIDE:op expr:e2
          {:
-             RESULT = new BinaryOpNode(e1, BinaryOpNode.Operator.DIVIDE, e2);
+             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.DIVIDE, e2);
          :}
          |
          LPAREN expr:e RPAREN
@@ -257,51 +259,51 @@ expr ::= expr:e1 PLUS expr:e2
          |
          NUMBER:n
          {:
-             RESULT = new NumberNode(n);
+             RESULT = new NumberNode(nleft, nright, n);
          :}
          |
-         TRUE
+         TRUE:t
          {:
-             RESULT = new BooleanNode(true);
+             RESULT = new BooleanNode(tleft, tright, true);
          :}
          |
-         FALSE
+         FALSE:f
          {:
-             RESULT = new BooleanNode(false);
+             RESULT = new BooleanNode(fleft, fright, false);
          :}
          |
          ID:id
          {:
-             RESULT = new VariableNode(id);
+             RESULT = new VariableNode(idleft, idright, id);
          :}
          |
-         expr:left AND expr:right
+         expr:left AND:op expr:right
          {:
-            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.AND, right);
+            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.AND, right);
          :}
          |
-         expr:left OR expr:right
+         expr:left OR:op expr:right
          {:
-            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.OR, right);
+            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.OR, right);
          :}
          |
-         expr:left EQ expr:right
+         expr:left EQ:op expr:right
          {:
-            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.EQ, right);
+            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.EQ, right);
          :}
          |
-         expr:left LT expr:right
+         expr:left LT:op expr:right
          {:
-            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.LT, right);
+            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.LT, right);
          :}
          |
-         expr:left GT expr:right
+         expr:left GT:op expr:right
          {:
-            RESULT = new BinaryOpNode(left, BinaryOpNode.Operator.GT, right);
+            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.GT, right);
          :}
          |
-         NOT expr:e
+         NOT:op expr:e
          {:
-            RESULT = new UnaryOpNode(UnaryOpNode.Operator.NOT, e);
+            RESULT = new UnaryOpNode(opleft, opright, UnaryOpNode.Operator.NOT, e);
          :}
          ;

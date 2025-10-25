@@ -7,7 +7,8 @@ public class WhileStmtNode extends StmtNode {
     private ExprNode condition;
     private List<StmtNode> body;
 
-    public WhileStmtNode(ExprNode condition, List<StmtNode> body) {
+    public WhileStmtNode(int line, int column, ExprNode condition, List<StmtNode> body) {
+        super(line, column);
         this.condition = condition;
         this.body = body;
     }

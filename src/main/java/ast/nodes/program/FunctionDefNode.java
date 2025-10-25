@@ -15,8 +15,9 @@ public class FunctionDefNode extends ASTNode {
     private List<ParamNode> parameters;
     private List<StmtNode> statements;
 
-    public FunctionDefNode(String returnType, String functionName,
+    public FunctionDefNode(int line, int column, String returnType, String functionName,
                            List<ParamNode> parameters, List<StmtNode> statements) {
+        super(line, column);
         this.returnType = returnType;
         this.functionName = functionName;
         this.parameters = parameters != null ? parameters : new ArrayList<>();

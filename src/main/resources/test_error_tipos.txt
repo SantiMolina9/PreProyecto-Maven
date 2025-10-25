@@ -1,0 +1,25 @@
+int main() {
+    int x = 10;
+    bool flag = true;
+    int y;
+    
+    x = flag;
+    
+    flag = x;
+    
+    y = x + flag;
+    
+    flag = x && y;
+    
+    if (x) {
+        y = 5;
+    }
+    
+    while (x) {
+        x = x - 1;
+    }
+    
+    bool resultado = flag > x;
+    
+    return x;
+}

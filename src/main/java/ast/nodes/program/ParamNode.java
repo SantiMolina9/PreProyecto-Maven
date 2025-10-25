@@ -10,7 +10,8 @@ public class ParamNode extends ASTNode {
     private String type;
     private String name;
 
-    public ParamNode(String type, String name) {
+    public ParamNode(int line, int column, String type, String name) {
+        super(line, column);
         this.type = type;
         this.name = name;
     }
