@@ -31,10 +31,7 @@ public class CompilerError {
 
     @Override
     public String toString() {
-        return String.format("[%s] Line %d, Column %d: %s",
+        return String.format("[%s] Línea %d, Columna %d: %s",
                 errorType, line, column, message);
     }
 }
-
-
-

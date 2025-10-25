@@ -41,7 +41,7 @@ public class SemanticAnalyzer implements ASTVisitor {
     @Override
     public Object visitProgram(ProgramNode node) {
         System.out.println("\n" + "=".repeat(50));
-        System.out.println("ANALISIS SEMANTICO");
+        System.out.println("ANALISIS SEMÁNTICO");
         System.out.println("=".repeat(50));
 
         node.getMainFunction().accept(this);
@@ -60,7 +60,7 @@ public class SemanticAnalyzer implements ASTVisitor {
 
         currentFunctionReturnType = returnType;
 
-        System.out.println("\n→ Analizando funcion: " + functionName + " (" + returnType + ")");
+        System.out.println("\n→ Analizando función: " + functionName + " (" + returnType + ")");
 
         symbolTable.enterScope("function_" + functionName);
 
@@ -78,8 +78,8 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (!returnType.equals("void") && !hasReturnStatement(node.getStatements())) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Function '" + functionName + "' with return type '" +
-                                    returnType + "' must have a return statement",
+                            "La función '" + functionName + "' con retorno de tipo '" +
+                                    returnType + "' debe tener un valor de retorno",
                             "ERROR SEMANTICO")
             );
         }
@@ -98,13 +98,13 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (symbolTable.existsLocal(paramName)) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Parameter '" + paramName + "' is already declared in this scope",
+                            "El parámetro '" + paramName + "' ya fue declarado en este entorno",
                             "ERROR SEMANTICO")
             );
         } else {
             Object defaultValue = TypeChecker.getDefaultValue(paramType);
             symbolTable.declare(paramName, paramType, defaultValue, -1, -1);
-            System.out.println("  ✓ Declared parameter: " + paramName + " : " + paramType);
+            System.out.println("  ✓ Parámetro declarado: " + paramName + " : " + paramType);
         }
 
         return null;
@@ -122,7 +122,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             if (symbolTable.existsLocal(varName)) {
                 errorHandler.addError(
                         new CompilerError(-1, -1,
-                                "Variable '" + varName + "' is already declared in this scope",
+                                "La variable '" + varName + "' ya fue declarada en este entorno",
                                 "ERROR SEMANTICO")
                 );
                 continue;
@@ -135,8 +135,8 @@ public class SemanticAnalyzer implements ASTVisitor {
                 if (!TypeChecker.areTypesCompatible(type, initType)) {
                     errorHandler.addError(
                             new CompilerError(-1, -1,
-                                    "Cannot assign " + initType + " to variable '" +
-                                            varName + "' of type " + type,
+                                    "No se puede asignar " + initType + " a la variable '" +
+                                            varName + "' de tipo " + type,
                                     "ERROR SEMANTICO")
                     );
                 }
@@ -150,7 +150,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 errorHandler.addWarning(
                         new CompilerError(-1, -1,
                                 "Variable '" + varName + "' declarada pero no inicializada",
-                                "WARNING")
+                                "ADVERTENCIA")
                 );
             }
         }
@@ -183,15 +183,15 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (!TypeChecker.areTypesCompatible(entry.getType(), exprType)) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Cannot assign " + exprType + " to variable '" +
-                                    varName + "' of type " + entry.getType(),
+                            "No se puede asignar " + exprType + " a la variable '" +
+                                    varName + "' de tipo " + entry.getType(),
                             "ERROR SEMANTICO")
             );
         }
 
         Object value = expressionEvaluator.evaluate(expr);
         symbolTable.assign(varName, value);
-        System.out.println("  → Assignment: " + varName + " = " + value);
+        System.out.println("  → Asignación: " + varName + " = " + value);
 
         return null;
     }
@@ -205,25 +205,25 @@ public class SemanticAnalyzer implements ASTVisitor {
                     !TypeChecker.areTypesCompatible(currentFunctionReturnType, exprType)) {
                 errorHandler.addError(
                         new CompilerError(-1, -1,
-                                "Return type mismatch: expected " + currentFunctionReturnType +
-                                        ", got " + exprType,
+                                "Tipo de retorno incorrecto: Esperado " + currentFunctionReturnType +
+                                        ", se obtuvo " + exprType,
                                 "ERROR SEMANTICO")
                 );
             }
 
             Object value = expressionEvaluator.evaluate(node.getExpression());
-            System.out.println("  ← Return: " + value + " (" + exprType + ")");
+            System.out.println("  ← Retorna: " + value + " (" + exprType + ")");
             return exprType;
         } else {
             if (currentFunctionReturnType != null &&
                     !currentFunctionReturnType.equals("void")) {
                 errorHandler.addError(
                         new CompilerError(-1, -1,
-                                "Function must return a value of type " + currentFunctionReturnType,
+                                "La función debe retornar una variable de tipo " + currentFunctionReturnType,
                                 "ERROR SEMANTICO")
                 );
             }
-            System.out.println("  ← Return (void)");
+            System.out.println("  ← Retorna (vacío)");
             return "void";
         }
     }
@@ -240,7 +240,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (!"bool".equals(condType)) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Condition in if statement must be boolean, got: " + condType,
+                            "La condición en el IF debe ser booleana, pero se obtuvo: " + condType,
                             "ERROR SEMANTICO")
             );
         }
@@ -271,7 +271,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (!"bool".equals(condType)) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Condition in while statement must be boolean, got: " + condType,
+                            "La condición en el WHILE debe ser booleana, pero se obtuvo: " + condType,
                             "ERROR SEMANTICO")
             );
         }
@@ -294,7 +294,7 @@ public class SemanticAnalyzer implements ASTVisitor {
             if (!"bool".equals(operandType)) {
                 errorHandler.addError(
                         new CompilerError(-1, -1,
-                                "NOT operator requires boolean operand, got: " + operandType,
+                                "El operador NOT requiere un operador booleano, pero se obtuvo: " + operandType,
                                 "ERROR SEMANTICO")
                 );
                 return "error";
@@ -316,7 +316,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (!TypeChecker.areTypesCompatible(leftType, rightType)) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Type mismatch in binary operation: " + leftType + " and " + rightType,
+                            "Error de tipo en operación binaria: " + leftType + " y " + rightType,
                             "ERROR SEMANTICO")
             );
             return "error";
@@ -327,7 +327,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 if (!TypeChecker.isArithmeticType(leftType)) {
                     errorHandler.addError(
                             new CompilerError(-1, -1,
-                                    "Arithmetic operations require numeric types, got: " + leftType,
+                                    "Las operaciones aritméticas requieren tipos numéricos, pero se obtuvo: " + leftType,
                                     "ERROR SEMANTICO")
                     );
                     return "error";
@@ -338,7 +338,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 if (!TypeChecker.isArithmeticType(leftType)) {
                     errorHandler.addError(
                             new CompilerError(-1, -1,
-                                    "Comparison operations require numeric types, got: " + leftType,
+                                    "Las operaciones de comparación requieren tipos numéricos, pero se obtuvo: " + leftType,
                                     "ERROR SEMANTICO")
                     );
                     return "error";
@@ -353,7 +353,7 @@ public class SemanticAnalyzer implements ASTVisitor {
                 if (!"bool".equals(leftType)) {
                     errorHandler.addError(
                             new CompilerError(-1, -1,
-                                    "Logical operations require boolean types, got: " + leftType,
+                                    "Las operaciones lógicas requieren tipos booleanos, pero se obtuvo: " + leftType,
                                     "ERROR SEMANTICO")
                     );
                     return "error";
@@ -383,7 +383,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (entry == null) {
             errorHandler.addError(
                     new CompilerError(-1, -1,
-                            "Variable '" + varName + "' is not declared",
+                            "La variable '" + varName + "' no fue declarada",
                             "ERROR SEMANTICO")
             );
             return "error";
@@ -392,7 +392,7 @@ public class SemanticAnalyzer implements ASTVisitor {
         if (!entry.isInitialized()) {
             errorHandler.addWarning(
                     new CompilerError(-1, -1,
-                            "Variable '" + varName + "' is used before being initialized",
+                            "La variable '" + varName + "' se utiliza antes de ser inicializada",
                             "WARNING")
             );
         }

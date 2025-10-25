@@ -22,7 +22,7 @@ public class ErrorHandler {
 
     public void addWarning(CompilerError warning) {
         warnings.add(warning);
-        System.out.println("Warning: " + warning.toString());
+        System.out.println(warning.toString());
     }
 
     public void addLexicalError(int line, int column, String message) {
@@ -46,9 +46,9 @@ public class ErrorHandler {
     }
 
     public void printSummary() {
-        System.out.println("\n========== Resumen de compilacion ==========");
+        System.out.println("\n========== Resumen de Compilación ==========");
         System.out.println("Errores: " + errors.size());
-        System.out.println("Warnings: " + warnings.size());
+        System.out.println("Advertencias: " + warnings.size());
 
         /*if (hasErrors) {
             System.out.println("\nCompilacion fallida!");

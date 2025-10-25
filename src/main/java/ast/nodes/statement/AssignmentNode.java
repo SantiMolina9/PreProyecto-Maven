@@ -20,7 +20,7 @@ public class AssignmentNode extends StmtNode {
 
     @Override
     public String toString() {
-        return "Assignment(" + variableName + " = " + expression + ")";
+        return "Asignación(" + variableName + " = " + expression + ")";
     }
 
     @Override
