@@ -20,7 +20,7 @@
 
 ### ¿Qué es este proyecto?
 
-Este es un **compilador educativo** desarrollado en Java que implementa un compilador completo con las tres fases fundamentales: análisis léxico, análisis sintáctico y análisis semántico. El compilador genera código assembler x86-64 a partir de un lenguaje simple de alto nivel.
+Este es un **compilador** desarrollado en Java que implementa un compilador completo con las tres fases fundamentales: análisis léxico, análisis sintáctico y análisis semántico. El compilador genera código assembler x86-64 a partir de un lenguaje simple de alto nivel.
 
 ### Características principales
 
@@ -419,6 +419,3 @@ java -cp target/classes TestRunner
 # Si se compila exitosamente: archivo.asm
 ```
 
-## Resumen
-
-Este compilador es un proyecto educativo completo que implementa las 4 fases principales: análisis léxico, sintáctico, semántico y generación de código. La arquitectura modular basada en patrones de diseño permite fácil extensión y mantenimiento.
