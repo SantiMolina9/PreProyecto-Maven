@@ -1,3 +1,13 @@
+
+section .text
+global _start
+
+_start:
+    call main
+    mov ebx, eax    ; exit code
+    mov eax, 1      ; sys_exit
+    int 0x80
+
 main:
     push rbp
     mov rbp, rsp

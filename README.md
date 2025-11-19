@@ -76,11 +76,14 @@ cd compiler
 # Compilar el proyecto
 mvn clean compile
 
-# Ejecutar los tests
-mvn test
+# Ejecutar proyecto con el txt de entrada (WINDOWS)
+mvn exec:java "-Dexec.args=src/main/resources/{nombre_archivo}.txt"
 
-# Compilar un archivo fuente
-java -cp target/classes CompilerMain src/main/resources/test_bueno.txt
+NOTA: Hay archivos de prueba dentro del directorio 'resources'
+
+# Ejecutar proyecto (LINUX)
+mvn exec:java
+
 ```
 
 ---
@@ -121,32 +124,22 @@ git clone <url-repositorio> compiler
 cd compiler
 ```
 
-#### 4. Generar archivos del parser y lexer
+La generacion del parser y el lexer estan automatizados en el `pom.xml` con las dependencias correspondientes.
 
-```bash
-# Generar lexer (Lexer.java)
-jflex src/main/java/jflex/lexer.flex
-
-# Generar parser (MiParser.java y sym.java)
-java -jar <ruta>/java_cup-11b.jar -parser MiParser src/main/java/cup/parser.cup
-```
-
-Nota: Si usas Maven, estos pasos pueden estar automatizados en el `pom.xml`
-
-#### 5. Compilar el proyecto
+#### 4. Compilar el proyecto
 
 ```bash
 mvn clean compile
+
+# Ejecutar proyecto con el txt de entrada (WINDOWS)
+mvn exec:java "-Dexec.args=src/main/resources/{nombre_archivo}.txt"
+
+NOTA: Hay archivos de prueba dentro del directorio 'resources'
+
+# Ejecutar proyecto (LINUX)
+mvn exec:java
 ```
 
-#### 6. Verificar la instalación
-
-```bash
-# Ejecutar los tests de prueba
-mvn test
-
-# Si todo pasa, ejecutar ejemplo básico
-java -cp target/classes CompilerMain src/main/resources/test_bueno.txt
 ```
 
 ### Estructura del proyecto
@@ -281,19 +274,7 @@ public static void compileString(String source)
 public static void setTestMode(boolean mode)
 ```
 
-**Uso:**
-```bash
-# Compilar archivo
-java CompilerMain archivo.txt
-
-# Genera: archivo.asm
-
-# Salida esperada:
-# ✓ Código assembler generado en: archivo.asm
-# ✓ COMPILACION EXITOSA
-```
-
-### 2. Lexer
+### 1. Lexer
 
 **Analizador léxico generado con JFlex.**
 
@@ -307,7 +288,7 @@ Symbol token = lexer.next_token();
 - Operadores: `+`, `-`, `*`, `/`, `&&`, `||`, `!`, `>`, `<`, `==`
 - Delimitadores: `(`, `)`, `{`, `}`, `;`, `,`, `=`
 
-### 3. MiParser
+### 2. MiParser
 
 **Analizador sintáctico generado con CUP.**
 
@@ -326,7 +307,7 @@ stmt → declaration ; | assignment ; | return_stmt ; | if_stmt | while_stmt
 expr → expr BINOP expr | UNOP expr | NUMBER | ID | TRUE | FALSE | ( expr )
 ```
 
-### 4. SemanticAnalyzer
+### 3. SemanticAnalyzer
 
 **Validación semántica e información de tipos.**
 
@@ -345,7 +326,7 @@ boolean hasErrors = analyzer.hasErrors();
 - Inicialización de variables
 - Scopes: variables fuera de alcance
 
-### 5. CodeGenerator
+### 4. CodeGenerator
 
 **Generador de código assembler x86-64.**
 
@@ -361,7 +342,7 @@ String asmCode = (String) ast.accept(codegen);
 - Generación de labels para control de flujo
 - Operaciones x86-64 optimizadas
 
-### 6. SymbolTable
+### 5. SymbolTable
 
 **Gestión de símbolos con scopes jerárquicos.**
 
@@ -384,7 +365,7 @@ table.assign(name, value);
 - `address`: Dirección en memoria (para codegen)
 - `stackOffset`: Offset en stack frame
 
-### 7. ErrorHandler
+### 6. ErrorHandler
 
 **Sistema singleton de gestión de errores.**
 
@@ -405,19 +386,6 @@ handler.printSummary();
 - **SyntaxError**: Violación de gramática
 - **SemanticError**: Variables no declaradas, scopes
 - **TypeError**: Incompatibilidad de tipos
-
-### Ejecución
-
-```bash
-# Desde clase main
-java -cp target/classes CompilerMain archivo.txt
-
-# Ver resumen de compilación
-java -cp target/classes TestRunner
-
-# Archivo de salida
-# Si se compila exitosamente: archivo.asm
-```
 
 ## Resumen
 

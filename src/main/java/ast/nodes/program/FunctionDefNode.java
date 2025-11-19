@@ -14,7 +14,7 @@ public class FunctionDefNode extends ASTNode {
     private String functionName;
     private List<ParamNode> parameters;
     private List<StmtNode> statements;
-
+    //Agregar cuanta memoria ocupa.
     public FunctionDefNode(int line, int column, String returnType, String functionName,
                            List<ParamNode> parameters, List<StmtNode> statements) {
         super(line, column);

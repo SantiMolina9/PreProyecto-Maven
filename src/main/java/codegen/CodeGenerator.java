@@ -149,7 +149,7 @@ public class CodeGenerator implements ASTVisitor {
         }
 
         // Mover parámetro desde registro a stack
-        emitComment("Guardar parámetro: " + paramName);
+        //emitComment("Guardar parámetro: " + paramName);
         switch (symbolTable.getCurrentStackOffset()) {
             case 4:  emit("mov " + address + ", edi"); break; // primer parámetro
             case 8:  emit("mov " + address + ", esi"); break; // segundo parámetro
@@ -477,13 +477,13 @@ public class CodeGenerator implements ASTVisitor {
             code.append(line).append("\n");
         }
         //Correccion de CodeGenerator   
-        /*code.append("\nsection .text\n");
+        code.append("\nsection .text\n");
         code.append("global _start\n\n");
         code.append("_start:\n");
         code.append("    call main\n");
         code.append("    mov ebx, eax    ; exit code\n");
         code.append("    mov eax, 1      ; sys_exit\n");
-        code.append("    int 0x80\n\n");*/
+        code.append("    int 0x80\n\n");
 
         // Ensamblar sección text
         for (String line : textSection) {
