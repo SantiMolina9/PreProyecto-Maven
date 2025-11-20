@@ -76,10 +76,9 @@ cd compiler
 # Compilar el proyecto
 mvn clean compile
 
-# Ejecutar proyecto con el txt de entrada (WINDOWS)
+# Ejecutar proyecto con el txt de entrada (test) (WINDOWS)
+(!) NOTA: Hay archivos de prueba dentro del directorio 'resources'
 mvn exec:java "-Dexec.args=src/main/resources/{nombre_archivo}.txt"
-
-NOTA: Hay archivos de prueba dentro del directorio 'resources'
 
 # Ejecutar proyecto (LINUX)
 mvn exec:java
@@ -212,7 +211,7 @@ compiler/
             │  (Singleton) │
             └──────────────┘
 ```
-```
+
 
 ### Fases del compilador
 
