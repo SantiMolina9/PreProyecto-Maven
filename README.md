@@ -5,7 +5,7 @@
 - Quiroga Stek, Esteban Eduardo
 - Sanabria Quattrocchio, Pablo Emiliano
 - Videla Del Castillo, Florencia Fatima
-  
+
 # Documentación del Compilador
 
 ## 📋 Tabla de Contenidos
@@ -144,7 +144,6 @@ mvn exec:java
 
 ### Estructura del proyecto
 
-```
 compiler/
 ├── pom.xml                          # Configuración Maven
 ├── src/
@@ -161,10 +160,7 @@ compiler/
 │   │   └── resources/               # Archivos de prueba
 │   └── test/                        # Tests unitarios
 └── target/                          # Compilados y JARs
-
 ```
-
----
 
 ## Arquitectura
 
@@ -215,6 +211,7 @@ compiler/
             │ ErrorHandler │
             │  (Singleton) │
             └──────────────┘
+```
 ```
 
 ### Fases del compilador
@@ -376,9 +373,9 @@ handler.addTypeError(line, column, message);
 handler.addWarning(line, column, message);
 
 if (handler.hasErrors()) {
-    // Manejar errores
-}
-handler.printSummary();
+        // Manejar errores
+        }
+        handler.printSummary();
 ```
 
 **Tipos de errores:**
