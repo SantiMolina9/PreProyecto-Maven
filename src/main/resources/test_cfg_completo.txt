@@ -1,0 +1,14 @@
+integer h(){
+    x = 1 ;
+    y = 2 ;
+    if (x) {
+        z = x + y ;
+        while (z) {
+            z = z + 1 ;
+        }
+    }
+    else {
+        w = x + 3 ;
+    }
+    return x ;
+}

@@ -1,115 +1,109 @@
-import codegen.CodeGenerator;
 import com.ejemplo.parser.MiParser;
 import ast.nodes.program.ProgramNode;
-import semantic.SemanticAnalyzer;
-import semantic.errors.ErrorHandler;
+import cfg.CFGBuilder;
+import cfg.DOTExporter;
 
 import java.io.*;
 import java_cup.runtime.Symbol;
 
 /**
- * Clase principal del compilador.
- * Coordina las fases de análisis léxico, sintáctico y semántico.
+ * Clase principal del CFG Builder.
+ * Pipeline: Codigo fuente -> Lexer -> Parser -> AST -> CFG -> DOT (Graphviz)
  */
 public class CompilerMain {
 
-    // Flag para indicar si estamos en modo test
-    private static boolean testMode = false;
-
     public static void main(String[] args) {
 
-        //Ejecucion hardcodeada
+        // Si no se pasa argumento, usar archivo de test por defecto
         if (args.length == 0) {
-            args = new String[]{"src/main/resources/test_bueno.txt"};
+            args = new String[]{"src/main/resources/test_cfg.txt"};
         }
 
         if (args.length < 1) {
-            System.err.println("Usage: java CompilerMain <input_file>");
-            exitWithCode(1);
+            System.err.println("Uso: java CompilerMain <archivo_entrada>");
+            System.exit(1);
             return;
         }
 
         String inputFile = args[0];
 
         try {
-            compileFile(inputFile);
-        } catch (Exception e) {
-            System.err.println("Error de compilacion: " + e.getMessage());
-            e.printStackTrace();
-            exitWithCode(1);
-        }
-    }
+            // ========================================
+            // FASE 1: Analisis Lexico y Sintactico
+            // ========================================
+            System.out.println("=".repeat(60));
+            System.out.println("FASE 1: ANALISIS LEXICO Y SINTACTICO");
+            System.out.println("=".repeat(60));
 
-    /**
-     * Activa el modo test (no hace System.exit)
-     */
-    public static void setTestMode(boolean mode) {
-        testMode = mode;
-    }
+            ProgramNode ast = parseFile(inputFile);
 
-    /**
-     * Sale del programa solo si no estamos en modo test
-     */
-    private static void exitWithCode(int code) {
-        if (!testMode) {
-            System.exit(code);
-        }
-    }
-
-    /**
-     * Compila un archivo fuente
-     */
-    public static void compileFile(String filename) throws Exception {
-        System.out.println("\n" + "=".repeat(60));
-        System.out.println("COMPILANDO ARCHIVO: " + filename);
-        System.out.println("=".repeat(60));
-
-        // Fase 1: Análisis Léxico y Sintáctico
-        ProgramNode ast = parseFile(filename);
-
-        if (ast == null) {
-            System.err.println("Parseo fallido. Compilacion abortada.");
-            return;
-        }
-
-        // Fase 2: Análisis Semántico
-        ErrorHandler errorHandler = ErrorHandler.getInstance();
-        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
-
-        ast.accept(semanticAnalyzer);
-
-        // En compileFile(), después del análisis semántico exitoso:
-        if (!errorHandler.hasErrors()) {
-            // Fase 3: Generación de código
-            CodeGenerator codeGenerator = new CodeGenerator(semanticAnalyzer.getSymbolTable());
-            String assemblyCode = (String) ast.accept(codeGenerator);
-
-            // Guardar el código assembler
-            String asmFilename = filename.replace(".txt", ".asm");
-            try (PrintWriter out = new PrintWriter(asmFilename)) {
-                out.println(assemblyCode);
+            if (ast == null) {
+                System.err.println("Error: Parseo fallido. Abortando.");
+                System.exit(1);
+                return;
             }
 
-            System.out.println("✓ Código assembler generado en: " + asmFilename);
-        }
+            System.out.println("Parseo exitoso.");
+            System.out.println("AST: " + ast);
 
-        // Imprimir resumen
-        semanticAnalyzer.printSummary();
+            // ========================================
+            // FASE 2: Construccion del CFG
+            // ========================================
+            System.out.println("\n" + "=".repeat(60));
+            System.out.println("FASE 2: CONSTRUCCION DEL CFG");
+            System.out.println("=".repeat(60));
 
-        // Resultado final
-        System.out.println("\n" + "=".repeat(60));
-        if (errorHandler.hasErrors()) {
-            System.out.println("❌ COMPILACION FALLIDA");
+            CFGBuilder cfgBuilder = new CFGBuilder();
+            cfgBuilder.build(ast);
+
+            System.out.println("CFG construido exitosamente.");
+            System.out.println("Total de nodos: " + cfgBuilder.getAllNodes().size());
+
+            // Imprimir representacion textual del CFG
+            cfgBuilder.printCFG();
+
+            // ========================================
+            // FASE 3: Exportar a DOT (Graphviz)
+            // ========================================
             System.out.println("=".repeat(60));
-            exitWithCode(1); // Usa exitWithCode en lugar de System.exit
-        } else {
-            System.out.println("✓ COMPILACION EXITOSA");
+            System.out.println("FASE 3: GENERACION DOT (Graphviz)");
             System.out.println("=".repeat(60));
+
+            String dot = DOTExporter.export(cfgBuilder.getAllNodes());
+
+            // Guardar archivo DOT
+            String dotFile = inputFile.replace(".txt", ".dot");
+            try (PrintWriter out = new PrintWriter(dotFile)) {
+                out.print(dot);
+            }
+
+            System.out.println("Archivo DOT generado: " + dotFile);
+            System.out.println("\nContenido del archivo DOT:");
+            System.out.println("-".repeat(40));
+            System.out.println(dot);
+            System.out.println("-".repeat(40));
+
+            // ========================================
+            // Resumen
+            // ========================================
+            System.out.println("=".repeat(60));
+            System.out.println("COMPLETADO EXITOSAMENTE");
+            System.out.println("=".repeat(60));
+            System.out.println("\nPara visualizar el CFG, ejecutar:");
+            System.out.println("  dot -Tpng " + dotFile + " -o cfg.png");
+            System.out.println("  dot -Tsvg " + dotFile + " -o cfg.svg");
+            System.out.println("  dot -Tpdf " + dotFile + " -o cfg.pdf");
+            System.out.println("\nO pegar el contenido DOT en: https://dreampuf.github.io/GraphvizOnline/");
+
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 
     /**
-     * Realiza el parsing de un archivo
+     * Parsea un archivo fuente y retorna el AST.
      */
     private static ProgramNode parseFile(String filename) throws Exception {
         FileReader fileReader = new FileReader(filename);
@@ -123,41 +117,5 @@ public class CompilerMain {
         }
 
         return null;
-    }
-
-    /**
-     * Compila desde una cadena (útil para testing)
-     */
-    public static void compileString(String source) throws Exception {
-        System.out.println("\n" + "=".repeat(60));
-        System.out.println("COMPILANDO CODIGO FUENTE");
-        System.out.println("=".repeat(60));
-
-        StringReader stringReader = new StringReader(source);
-        Lexer lexer = new Lexer(stringReader);
-        MiParser parser = new MiParser(lexer);
-
-        Symbol result = parser.parse();
-
-        if (result == null || !(result.value instanceof ProgramNode)) {
-            System.err.println("Parseo fallido. Compilacion abortada.");
-            return;
-        }
-
-        ProgramNode ast = (ProgramNode) result.value;
-
-        ErrorHandler errorHandler = ErrorHandler.getInstance();
-        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer();
-
-        ast.accept(semanticAnalyzer);
-        semanticAnalyzer.printSummary();
-
-        System.out.println("\n" + "=".repeat(60));
-        if (errorHandler.hasErrors()) {
-            System.out.println("❌ COMPILACION FALLIDA");
-        } else {
-            System.out.println("✓ COMPILACION EXITOSA");
-        }
-        System.out.println("=".repeat(60));
     }
 }

@@ -1,7 +1,15 @@
 /*
-  File Name: ycalc_ast.cup
-  Parser modificado para generar AST en lugar de strings
-  To Create: > java java_cup.Main < ycalc_ast.cup
+  Parser simplificado para la gramatica del ejercicio de CFG.
+
+  Gramatica:
+    Program    -> integer id ( ) { Statement }
+    Statement  -> id = Expression ;
+               | return Expression ;
+               | if ( Expression ) { Statement } else { Statement }
+               | while ( Expression ) { Statement }
+               | Statement Statement
+    Expression -> Value + Value | Value
+    Value      -> id | number
 */
 
 import java_cup.runtime.*;
@@ -12,23 +20,18 @@ import ast.nodes.program.FunctionDefNode;
 import ast.nodes.program.ParamNode;
 import ast.nodes.program.ProgramNode;
 import ast.nodes.statement.*;
-import semantic.errors.ErrorHandler;
 
 parser code {:
-    private ErrorHandler errorHandler = ErrorHandler.getInstance();
-
     public void report_error(String message, Object info) {
         if (info instanceof java_cup.runtime.Symbol) {
             java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
             if (s.left >= 0) {
-                int line = s.left + 1;
-                int column = (s.right >= 0) ? s.right + 1 : 0;
-                errorHandler.addSyntaxError(line, column, message);
+                System.err.println("Error de sintaxis en linea " + (s.left + 1) +
+                                   ", columna " + (s.right + 1) + ": " + message);
                 return;
             }
         }
-        // Si no hay información de posición
-        errorHandler.addSyntaxError(-1, -1, message);
+        System.err.println("Error de sintaxis: " + message);
     }
 
     public void report_fatal_error(String message, Object info) {
@@ -37,100 +40,41 @@ parser code {:
     }
 :};
 
-/* Terminal symbols (tokens) */
-terminal           SEMI, COMMA, ASSIGN;
-terminal           PLUS, MINUS, TIMES, DIVIDE;
+/* ========== Terminal symbols (tokens) ========== */
+terminal           SEMI, ASSIGN;
+terminal           PLUS;
 terminal           LPAREN, RPAREN, LBRACE, RBRACE;
-terminal           INT, BOOL, VOID, MAIN, RETURN;
-terminal           TRUE, FALSE;
+terminal           INTEGER, RETURN;
 terminal           IF, ELSE, WHILE;
-terminal           AND, OR, EQ, LT, GT, NOT;
 terminal Integer   NUMBER;
 terminal String    ID;
 
-/* Non-terminal symbols - ahora retornan nodos del AST */
+/* ========== Non-terminal symbols ========== */
 non terminal ProgramNode        program;
-non terminal FunctionDefNode    function_def;
-non terminal List               param_list, param_list_opt;
-non terminal ParamNode          param;
-non terminal String             type;
 non terminal List               stmt_list;
 non terminal StmtNode           stmt;
-non terminal DeclarationNode    declaration;
-non terminal AssignmentNode     assignment;
-non terminal ReturnStmtNode     return_stmt;
 non terminal ExprNode           expr;
-non terminal List               var_list;
+non terminal ExprNode           value;
 non terminal IfStmtNode         if_stmt;
 non terminal WhileStmtNode      while_stmt;
 
+/* ========== Grammar Rules ========== */
 
-/* Precedence */
-precedence left PLUS, MINUS;
-precedence left TIMES, DIVIDE;
-precedence left OR;
-precedence left AND;
-precedence left EQ;
-precedence left LT, GT;
-precedence right NOT;
-
-/* Grammar Rules */
-
-program ::= function_def:f
+/* Program -> integer id ( ) { Statement } */
+program ::= INTEGER ID:name LPAREN RPAREN LBRACE stmt_list:s RBRACE
             {:
-                RESULT = new ProgramNode(fleft, fright, f);
+                List<StmtNode> statements = (List<StmtNode>) s;
+                List<ParamNode> emptyParams = new ArrayList<ParamNode>();
+                FunctionDefNode func = new FunctionDefNode(
+                    nameleft, nameright, "integer", name, emptyParams, statements);
+                RESULT = new ProgramNode(nameleft, nameright, func);
             :}
             ;
 
-function_def ::= type:t MAIN LPAREN param_list_opt:p RPAREN LBRACE stmt_list:s RBRACE
-                 {:
-                     List<ParamNode> params = (p != null) ? (List<ParamNode>)p : new ArrayList<ParamNode>();
-                     List<StmtNode> statements = (List<StmtNode>)s;
-                     RESULT = new FunctionDefNode(tleft, tright, t, "main", params, statements);
-                 :}
-                 ;
-
-param_list_opt ::= param_list:p
-                   {:  RESULT = p; :}
-                   |
-                   /* empty */
-                   {:  RESULT = new ArrayList<ParamNode>(); :}
-                   ;
-
-param_list ::= param_list:pl COMMA param:p
-               {:
-                   List<ParamNode> list = (List<ParamNode>)pl;
-                   list.add(p);
-                   RESULT = list;
-               :}
-               |
-               param:p
-               {:
-                   List<ParamNode> list = new ArrayList<ParamNode>();
-                   list.add(p);
-                   RESULT = list;
-               :}
-               ;
-
-param ::= type:t ID:id
-          {:
-              RESULT = new ParamNode(tleft, tright, t, id);
-          :}
-          ;
-
-type ::= INT
-         {:  RESULT = "int"; :}
-         |
-         BOOL
-         {:  RESULT = "bool"; :}
-         |
-         VOID
-         {:  RESULT = "void"; :}
-         ;
-
+/* stmt_list -> stmt_list stmt | stmt */
 stmt_list ::= stmt_list:sl stmt:s
               {:
-                  List<StmtNode> list = (List<StmtNode>)sl;
+                  List<StmtNode> list = (List<StmtNode>) sl;
                   list.add(s);
                   RESULT = list;
               :}
@@ -143,167 +87,70 @@ stmt_list ::= stmt_list:sl stmt:s
               :}
               ;
 
-stmt ::= declaration:d SEMI
+/* Statement -> id = Expression ;
+             | return Expression ;
+             | if_stmt
+             | while_stmt
+*/
+stmt ::= ID:id ASSIGN expr:e SEMI
          {:
-             RESULT = d;
+             RESULT = new AssignmentNode(idleft, idright, id, e);
          :}
          |
-         assignment:a SEMI
+         RETURN:r expr:e SEMI
          {:
-             RESULT = a;
+             RESULT = new ReturnStmtNode(rleft, rright, e);
          :}
          |
-         return_stmt:r SEMI
+         if_stmt:s
          {:
-             RESULT = r;
+             RESULT = s;
          :}
          |
-         expr:e SEMI
+         while_stmt:s
          {:
-             RESULT = new ExprStmtNode(eleft, eright, e);
+             RESULT = s;
          :}
-         | if_stmt:stmts         {: RESULT = stmts; :}
-         | while_stmt:stmts      {: RESULT = stmts; :}
          ;
 
-if_stmt ::=
-    IF:i LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
-    {: RESULT = new IfStmtNode(ileft, iright, cond, then_stmts, null); :}
-    | IF:i LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
-      ELSE LBRACE stmt_list:else_stmts RBRACE
-    {: RESULT = new IfStmtNode(ileft, iright, cond, then_stmts, else_stmts); :}
-    ;
-
-while_stmt ::=
-    WHILE:w LPAREN expr:cond RPAREN LBRACE stmt_list:body RBRACE
-    {: RESULT = new WhileStmtNode(wleft, wright, cond, body); :}
-    ;
-
-declaration ::= type:t var_list:vl
-                {:
-                    List<VarDeclNode> variables = (List<VarDeclNode>)vl;
-                    RESULT = new DeclarationNode(tleft, tright, t, variables);
-                :}
-                ;
-
-var_list ::= var_list:vl COMMA ID:id
+/* if ( Expression ) { Statement } else { Statement } */
+if_stmt ::= IF:i LPAREN expr:cond RPAREN LBRACE stmt_list:then_stmts RBRACE
+             ELSE LBRACE stmt_list:else_stmts RBRACE
              {:
-                 List<VarDeclNode> list = (List<VarDeclNode>)vl;
-                 list.add(new VarDeclNode(idleft, idright, id, null));
-                 RESULT = list;
-             :}
-             |
-             var_list:vl COMMA ID:id ASSIGN expr:e
-             {:
-                 List<VarDeclNode> list = (List<VarDeclNode>)vl;
-                 list.add(new VarDeclNode(idleft, idright, id, e));
-                 RESULT = list;
-             :}
-             |
-             ID:id
-             {:
-                 List<VarDeclNode> list = new ArrayList<VarDeclNode>();
-                 list.add(new VarDeclNode(idleft, idright, id, null));
-                 RESULT = list;
-             :}
-             |
-             ID:id ASSIGN expr:e
-             {:
-                 List<VarDeclNode> list = new ArrayList<VarDeclNode>();
-                 list.add(new VarDeclNode(idleft, idright, id, e));
-                 RESULT = list;
+                 RESULT = new IfStmtNode(ileft, iright, cond,
+                     (List<StmtNode>) then_stmts, (List<StmtNode>) else_stmts);
              :}
              ;
 
-assignment ::= ID:id ASSIGN expr:e
+/* while ( Expression ) { Statement } */
+while_stmt ::= WHILE:w LPAREN expr:cond RPAREN LBRACE stmt_list:body RBRACE
                {:
-                   RESULT = new AssignmentNode(idleft, idright, id, e);
+                   RESULT = new WhileStmtNode(wleft, wright, cond,
+                       (List<StmtNode>) body);
                :}
                ;
 
-return_stmt ::= RETURN:r expr:e
-                {:
-                    RESULT = new ReturnStmtNode(rleft, rright, e);
-                :}
-                |
-                RETURN:r
-                {:
-                    RESULT = new ReturnStmtNode(rleft, rright, null);
-                :}
-                ;
-
-expr ::= expr:e1 PLUS:op expr:e2
+/* Expression -> Value + Value | Value */
+expr ::= value:v1 PLUS:op value:v2
          {:
-             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.PLUS, e2);
+             RESULT = new BinaryOpNode(opleft, opright, v1,
+                 BinaryOpNode.Operator.PLUS, v2);
          :}
          |
-         expr:e1 MINUS:op expr:e2
+         value:v
          {:
-             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.MINUS, e2);
-         :}
-         |
-         expr:e1 TIMES:op expr:e2
-         {:
-             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.TIMES, e2);
-         :}
-         |
-         expr:e1 DIVIDE:op expr:e2
-         {:
-             RESULT = new BinaryOpNode(opleft, opright, e1, BinaryOpNode.Operator.DIVIDE, e2);
-         :}
-         |
-         LPAREN expr:e RPAREN
-         {:
-             RESULT = e;
-         :}
-         |
-         NUMBER:n
-         {:
-             RESULT = new NumberNode(nleft, nright, n);
-         :}
-         |
-         TRUE:t
-         {:
-             RESULT = new BooleanNode(tleft, tright, true);
-         :}
-         |
-         FALSE:f
-         {:
-             RESULT = new BooleanNode(fleft, fright, false);
-         :}
-         |
-         ID:id
-         {:
-             RESULT = new VariableNode(idleft, idright, id);
-         :}
-         |
-         expr:left AND:op expr:right
-         {:
-            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.AND, right);
-         :}
-         |
-         expr:left OR:op expr:right
-         {:
-            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.OR, right);
-         :}
-         |
-         expr:left EQ:op expr:right
-         {:
-            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.EQ, right);
-         :}
-         |
-         expr:left LT:op expr:right
-         {:
-            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.LT, right);
-         :}
-         |
-         expr:left GT:op expr:right
-         {:
-            RESULT = new BinaryOpNode(opleft, opright, left, BinaryOpNode.Operator.GT, right);
-         :}
-         |
-         NOT:op expr:e
-         {:
-            RESULT = new UnaryOpNode(opleft, opright, UnaryOpNode.Operator.NOT, e);
+             RESULT = v;
          :}
          ;
+
+/* Value -> id | number */
+value ::= ID:id
+          {:
+              RESULT = new VariableNode(idleft, idright, id);
+          :}
+          |
+          NUMBER:n
+          {:
+              RESULT = new NumberNode(nleft, nright, n);
+          :}
+          ;
