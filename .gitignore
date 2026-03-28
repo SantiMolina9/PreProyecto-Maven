@@ -36,3 +36,10 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Otros ###
+.idea/
+.claude/
+.claude
+.claude/worktrees/
+
