@@ -1,5 +1,5 @@
 ## Universidad Nacional de Villa Mercedes - Escuela de Ingeniería y Ciencias Ambientales
-# Proyecto de Compiladores
+# Proyecto de Compiladores + Análisis Estático de Programas
 ### Alumnos:
 - Molina, Santiago Manuel
 - Quiroga Stek, Esteban Eduardo
@@ -9,18 +9,20 @@
 # Documentación del Compilador
 
 ## 📋 Tabla de Contenidos
-1. [Introducción](##introduccion)
+1. [Introducción](#introducción)
 2. [Instalación y Configuración](#instalación-y-configuración)
 3. [Arquitectura](#arquitectura)
 4. [Componentes](#componentes)
 
 ---
 
-## Introduccion
+## Introducción
 
 ### ¿Qué es este proyecto?
 
 Este es un **compilador educativo** desarrollado en Java que implementa un compilador completo con las tres fases fundamentales: análisis léxico, análisis sintáctico y análisis semántico. El compilador genera código assembler x86-64 a partir de un lenguaje simple de alto nivel.
+
+Como extensión para la materia **Análisis Estático de Programas**, se agrega la construcción del **Grafo de Flujo de Control (CFG)** desde el AST, con exportación al formato DOT de Graphviz.
 
 ### Características principales
 
@@ -28,19 +30,11 @@ Este es un **compilador educativo** desarrollado en Java que implementa un compi
 - **Análisis Sintáctico**: Parsing usando CUP (Java Cup) generando un Árbol Sintáctico Abstracto (AST)
 - **Análisis Semántico**: Validación de tipos, scopes y variables
 - **Generación de Código**: Producción de código assembler x86-64
+- **CFG**: Construcción del Grafo de Flujo de Control a partir del AST
+- **Visualización**: Exportación del CFG a formato DOT (Graphviz)
 - **Manejo de Errores**: Sistema completo con errores léxicos, sintácticos, semánticos y de tipos
 - **Suite de Tests**: 12 casos de prueba cobriendo diferentes escenarios
 
-### Lenguaje soportado
-
-El compilador soporta un lenguaje simple basado en C con:
-- Tipos: `int`, `bool`, `void`
-- Operadores aritméticos: `+`, `-`, `*`, `/`
-- Operadores lógicos: `&&`, `||`, `!`
-- Operadores de comparación: `==`, `<`, `>`
-- Control de flujo: `if/else`, `while`
-- Funciones: parámetros y retorno
-- Variables locales y globales con inicialización
 
 ### Ejemplo de código compilable
 
@@ -49,13 +43,13 @@ int main() {
     int x = 10;
     int y = 20;
     int resultado;
-    
+
     if (x < y) {
         resultado = x + y;
     } else {
         resultado = x - y;
     }
-    
+
     return resultado;
 }
 ```
@@ -65,6 +59,7 @@ int main() {
 - Java 11 o superior
 - Maven 3.6+
 - Git
+- Graphviz (opcional, para visualizar el CFG generado)
 
 ### Inicio rápido
 
@@ -76,13 +71,14 @@ cd compiler
 # Compilar el proyecto
 mvn clean compile
 
-# Ejecutar proyecto con el txt de entrada (test) (WINDOWS)
-(!) NOTA: Hay archivos de prueba dentro del directorio 'resources'
-mvn exec:java "-Dexec.args=src/main/resources/{nombre_archivo}.txt"
+# Ejecutar con archivo de prueba (Windows)
+mvn exec:java "-Dexec.args=src/main/resources/test_cfg.txt"
 
-# Ejecutar proyecto (LINUX)
-mvn exec:java
+# Ejecutar con archivo de prueba (Linux/Mac)
+mvn exec:java -Dexec.args="src/main/resources/test_cfg.txt"
 
+# Visualizar el CFG generado
+dot -Tpng src/main/resources/test_cfg.dot -o cfg.png
 ```
 
 ---
@@ -94,165 +90,102 @@ mvn exec:java
 #### 1. Preparar el ambiente
 
 ```bash
-# Verificar versión de Java
 java -version
 javac -version
-
-# Verificar Maven
 mvn --version
 ```
 
-#### 2. Configurar variables de entorno
-
-**En Linux/Mac:**
-```bash
-export JAVA_HOME=/path/to/jdk
-export PATH=$JAVA_HOME/bin:$PATH
-```
-
-**En Windows:**
-```
-JAVA_HOME=C:\Program Files\Java\jdk-17
-PATH=%JAVA_HOME%\bin;%PATH%
-```
-
-#### 3. Clonar y preparar el proyecto
+#### 2. Clonar y compilar el proyecto
 
 ```bash
 git clone <url-repositorio> compiler
 cd compiler
-```
-
-La generacion del parser y el lexer estan automatizados en el `pom.xml` con las dependencias correspondientes.
-
-#### 4. Compilar el proyecto
-
-```bash
 mvn clean compile
 
-# Ejecutar proyecto con el txt de entrada (WINDOWS)
+# Ejecutar (Windows)
 mvn exec:java "-Dexec.args=src/main/resources/{nombre_archivo}.txt"
 
-NOTA: Hay archivos de prueba dentro del directorio 'resources'
-
-# Ejecutar proyecto (LINUX)
-mvn exec:java
+# Ejecutar (Linux/Mac)
+mvn exec:java -Dexec.args="src/main/resources/{nombre_archivo}.txt"
 ```
 
-```
+La generación del parser y el lexer están automatizados en el `pom.xml`.
 
 ### Estructura del proyecto
 
-compiler/
-├── pom.xml                          # Configuración Maven
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   ├── CompilerMain.java    # Punto de entrada
-│   │   │   ├── TestRunner.java      # Suite de tests
-│   │   │   ├── Lexer.java           # Generado (JFlex)
-│   │   │   ├── ast/                 # Árbol sintáctico
-│   │   │   ├── cup/                 # Parser (CUP)
-│   │   │   ├── codegen/             # Generador de código
-│   │   │   ├── semantic/            # Análisis semántico
-│   │   │   └── jflex/               # Definición del lexer
-│   │   └── resources/               # Archivos de prueba
-│   └── test/                        # Tests unitarios
-└── target/                          # Compilados y JARs
 ```
+compiler/
+├── pom.xml
+└── src/
+    └── main/
+        ├── java/
+        │   ├── CompilerMain.java           # Punto de entrada
+        │   ├── ast/                        # Árbol sintáctico abstracto
+        │   │   ├── ASTNode.java
+        │   │   ├── nodes/
+        │   │   │   ├── expression/         # BinaryOpNode, NumberNode, VariableNode...
+        │   │   │   ├── statement/          # AssignmentNode, IfStmtNode, WhileStmtNode...
+        │   │   │   └── program/            # ProgramNode, FunctionDefNode, ParamNode
+        │   │   ├── visitor/
+        │   │   │   └── ASTVisitor.java
+        │   │   └── utils/
+        │   │       └── ASTUtils.java
+        │   ├── cfg/                        # Grafo de Flujo de Control
+        │   │   ├── CFGBuilder.java         # Construcción del CFG desde el AST
+        │   │   ├── CFGNode.java            # Nodo y arista del CFG
+        │   │   └── DOTExporter.java        # Exportador a formato Graphviz
+        │   ├── cup/
+        │   │   └── parser.cup
+        │   └── jflex/
+        │       └── lexer.flex
+        └── resources/                      # Archivos de prueba y salidas .dot / .asm
+```
+
+---
 
 ## Arquitectura
 
-### Diagrama de componentes
+### Pipeline del CFG Builder
 
 ```
-┌─────────────────────────────────────────────────────┐
-│              CompilerMain (Punto de entrada)         │
-└────┬────────────────────────────────────────────────┘
-     │
-     ├─────────────────────────────────────────────┐
-     │                                             │
-     ▼                                             │
-┌─────────────┐    Léxico                        │
-│   Lexer     │────────────────────┐             │
-│ (JFlex)     │                    │             │
-└─────────────┘                    │ Tokens      │
-                                   ▼             │
-                            ┌───────────────┐    │
-                            │  MiParser     │◄──┤ Sintáctico
-                            │   (CUP)       │    │
-                            └───────┬───────┘    │
-                                    │ AST        │
-                                    ▼            │
-                          ┌──────────────────┐   │
-                          │ SemanticAnalyzer│◄──┤ Semántico
-                          │  (Visitor)       │   │
-                          └────────┬─────────┘   │
-                                   │             │
-                          ┌────────▼────────┐   │
-                          │  SymbolTable    │   │
-                          │  (Scopes)       │   │
-                          └────────────────┘   │
-                                   │            │
-                          ┌────────▼────────┐   │
-                          │CodeGenerator    │◄──┤ Codegen
-                          │  (x86-64)       │   │
-                          └────────┬────────┘   │
-                                   │            │
-                                   ▼            │
-                          ┌────────────────┐   │
-                          │  .asm file     │   │
-                          └────────────────┘   │
-                                               │
-                    ┌──────────────────────────┘
-                    ▼
-            ┌──────────────┐
-            │ ErrorHandler │
-            │  (Singleton) │
-            └──────────────┘
+Código Fuente (.txt)
+        │
+        ▼
+┌─────────────┐
+│    Lexer    │  JFlex → Tokens
+└──────┬──────┘
+       │ Tokens
+       ▼
+┌─────────────┐
+│   MiParser  │  CUP → AST (ProgramNode)
+└──────┬──────┘
+       │ AST
+       ▼
+┌─────────────┐
+│  CFGBuilder │  AST → Lista de CFGNodes
+└──────┬──────┘
+       │ Lista de CFGNodes
+       ▼
+┌─────────────┐
+│ DOTExporter │  CFG → archivo .dot
+└─────────────┘
+       │
+       ▼
+  archivo .dot  (visualizable con Graphviz o en línea)
 ```
 
+### Gramática del lenguaje (parser.cup)
 
-### Fases del compilador
-
-#### Fase 1: Análisis Léxico (Lexer)
-- **Componente**: `Lexer.java` (generado desde `lexer.flex`)
-- **Responsabilidad**: Convertir el código fuente en tokens
-- **Errores**: Caracteres ilegales
-- **Salida**: Stream de tokens (símbolo léxico + valor)
-
-#### Fase 2: Análisis Sintáctico (Parser)
-- **Componente**: `MiParser.java` (generado desde `parser.cup`)
-- **Responsabilidad**: Validar estructura gramatical y construir AST
-- **Errores**: Sintaxis inválida (tokens fuera de orden)
-- **Salida**: Árbol Sintáctico Abstracto (AST)
-
-#### Fase 3: Análisis Semántico
-- **Componente**: `SemanticAnalyzer.java` (implementa `ASTVisitor`)
-- **Responsabilidad**: Validar tipos, scopes, declaraciones
-- **Errores**: Variables no declaradas, incompatibilidad de tipos
-- **Salida**: AST anotado con información de tipos
-
-#### Fase 4: Generación de Código
-- **Componente**: `CodeGenerator.java` (implementa `ASTVisitor`)
-- **Responsabilidad**: Traducir AST a assembler x86-64
-- **Formato de salida**: Archivo `.asm`
-
-### Patrón de diseño
-
-El compilador utiliza el patrón **Visitor** para recorrer el AST:
-
-- **AST Nodes**: Representan elementos del programa (expresiones, sentencias, etc.)
-- **ASTVisitor**: Interfaz que define operaciones sobre nodos
-- **Implementaciones**: `SemanticAnalyzer` y `CodeGenerator` implementan operaciones específicas
-
-### Tabla de Símbolos
-
-La `SymbolTable` gestiona:
-- **Scopes jerárquicos**: Global, funciones, bloques if/while
-- **Entradas de símbolo**: Nombre, tipo, valor, inicialización, ubicación
-- **Búsqueda**: Jerárquica (verifica scope actual y padres)
-- **Stack frame**: Tracking de offsets para generación de código
+```
+program    → integer id ( ) { stmt_list }
+stmt_list  → stmt+
+stmt       → id = expr ;
+           | return expr ;
+           | if ( expr ) { stmt_list } else { stmt_list }
+           | while ( expr ) { stmt_list }
+expr       → value + value | value
+value      → id | number
+```
 
 ---
 
@@ -260,129 +193,276 @@ La `SymbolTable` gestiona:
 
 ### 1. CompilerMain
 
-**Punto de entrada principal del compilador.**
+Punto de entrada del pipeline. Orquesta las tres fases: parseo, construcción del CFG y exportación DOT.
 
 ```java
-// Métodos estáticos principales
 public static void main(String[] args)
-public static void compileFile(String filename)
-public static void compileString(String source)
-public static void setTestMode(boolean mode)
 ```
 
-### 1. Lexer
+Ejecuta en orden:
 
-**Analizador léxico generado con JFlex.**
+**Fase 1 — Análisis Léxico y Sintáctico:**
+```java
+ProgramNode ast = parseFile(inputFile);
+```
+
+**Fase 2 — Construcción del CFG:**
+```java
+CFGBuilder cfgBuilder = new CFGBuilder();
+cfgBuilder.build(ast);
+cfgBuilder.printCFG();
+```
+
+**Fase 3 — Exportación DOT:**
+```java
+String dot = DOTExporter.export(cfgBuilder.getAllNodes());
+// Guarda el .dot junto al archivo de entrada
+```
+
+Al finalizar imprime el comando Graphviz para visualizar el grafo:
+```
+dot -Tpng test_cfg.dot -o cfg.png
+dot -Tsvg test_cfg.dot -o cfg.svg
+```
+
+---
+
+### 2. CFGBuilder
+
+Construye el Grafo de Flujo de Control a partir del AST. El patrón de construcción es recursivo: cada método retorna un par `{nodoEntrada, nodoSalida}` que representa la subred del CFG para esa sentencia.
+
+#### Método principal
 
 ```java
-Lexer lexer = new Lexer(new FileReader(filename));
-Symbol token = lexer.next_token();
+public void build(ProgramNode program)
 ```
 
-**Tokens soportados:**
-- Palabras clave: `int`, `bool`, `void`, `main`, `return`, `if`, `else`, `while`, `true`, `false`
-- Operadores: `+`, `-`, `*`, `/`, `&&`, `||`, `!`, `>`, `<`, `==`
-- Delimitadores: `(`, `)`, `{`, `}`, `;`, `,`, `=`
+Crea los nodos especiales `ENTRY` y `EXIT`, procesa la lista de sentencias del cuerpo de la función y los conecta.
 
-### 2. MiParser
-
-**Analizador sintáctico generado con CUP.**
+#### Métodos de acceso
 
 ```java
-MiParser parser = new MiParser(lexer);
-Symbol result = parser.parse();
-ProgramNode ast = (ProgramNode) result.value;
+public CFGNode       getEntryNode()  // nodo ENTRY
+public CFGNode       getExitNode()   // nodo EXIT
+public List<CFGNode> getAllNodes()   // todos los nodos del CFG
+public void          printCFG()     // imprime representación textual por stdout
 ```
 
-**Gramática soportada:**
-```
-program → function_def
-function_def → type MAIN ( param_list_opt ) { stmt_list }
-stmt_list → stmt+
-stmt → declaration ; | assignment ; | return_stmt ; | if_stmt | while_stmt
-expr → expr BINOP expr | UNOP expr | NUMBER | ID | TRUE | FALSE | ( expr )
-```
+#### Métodos de construcción (privados)
 
-### 3. SemanticAnalyzer
-
-**Validación semántica e información de tipos.**
+Cada método retorna `CFGNode[] { entryNode, exitNode }`:
 
 ```java
-SemanticAnalyzer analyzer = new SemanticAnalyzer();
-ast.accept(analyzer);
-
-SymbolTable symbolTable = analyzer.getSymbolTable();
-boolean hasErrors = analyzer.hasErrors();
+private CFGNode[] processStmtList(List<StmtNode> stmts)
 ```
-
-**Validaciones:**
-- Variables declaradas antes de usar
-- Compatibilidad de tipos en asignaciones
-- Tipos correctos en operadores
-- Inicialización de variables
-- Scopes: variables fuera de alcance
-
-### 4. CodeGenerator
-
-**Generador de código assembler x86-64.**
+Procesa una secuencia de sentencias conectándolas en cadena. Si la lista está vacía, crea un nodo `skip`.
 
 ```java
-CodeGenerator codegen = new CodeGenerator(symbolTable);
-String asmCode = (String) ast.accept(codegen);
+private CFGNode[] processStmt(StmtNode stmt)
 ```
-
-**Características:**
-- Prologue/Epilogue de funciones
-- Allocación dinámica de stack
-- Manejo de parámetros en registros
-- Generación de labels para control de flujo
-- Operaciones x86-64 optimizadas
-
-### 5. SymbolTable
-
-**Gestión de símbolos con scopes jerárquicos.**
+Delega al método específico según el tipo concreto de sentencia (`AssignmentNode`, `ReturnStmtNode`, `IfStmtNode`, `WhileStmtNode`). Para tipos no reconocidos, crea un nodo genérico con el `toString()` del nodo.
 
 ```java
-SymbolTable table = new SymbolTable();
-
-// Operaciones
-table.declare(name, type, value, line, column);
-SymbolEntry entry = table.lookup(name);
-table.enterScope("scope_name");
-table.exitScope();
-table.assign(name, value);
+private CFGNode[] processAssignment(AssignmentNode node)
 ```
-
-**SymbolEntry contiene:**
-- `name`: Nombre del símbolo
-- `type`: Tipo (int, bool, void)
-- `value`: Valor actual
-- `isInitialized`: Bandera de inicialización
-- `address`: Dirección en memoria (para codegen)
-- `stackOffset`: Offset en stack frame
-
-### 6. ErrorHandler
-
-**Sistema singleton de gestión de errores.**
+Crea un único nodo `STATEMENT` con etiqueta `"variableName = expresión"`. El nodo es a la vez entrada y salida del subgrafo.
 
 ```java
-ErrorHandler handler = ErrorHandler.getInstance();
-handler.addSemanticError(line, column, message);
-handler.addTypeError(line, column, message);
-handler.addWarning(line, column, message);
+private CFGNode[] processReturn(ReturnStmtNode node)
+```
+Crea un nodo `STATEMENT` con etiqueta `"return expresión"` y lo conecta directamente al nodo `EXIT`. Retorna `null` como nodo de salida para indicar que no hay flujo normal de continuación.
 
-if (handler.hasErrors()) {
-        // Manejar errores
-        }
-        handler.printSummary();
+```java
+private CFGNode[] processIf(IfStmtNode node)
+```
+Construye la estructura de ramificación del `if/else`:
+
+```
+     condNode (CONDITION)
+    /                    \
+ True                  False
+  /                        \
+thenBranch             elseBranch (o directo a joinNode si no hay else)
+    \                      /
+     ──→  joinNode (JOIN) ←──
 ```
 
-**Tipos de errores:**
-- **LexicalError**: Caracteres ilegales
-- **SyntaxError**: Violación de gramática
-- **SemanticError**: Variables no declaradas, scopes
-- **TypeError**: Incompatibilidad de tipos
+Si no hay rama `else`, la arista `False` va directamente al `joinNode`.
 
-## Resumen
+```java
+private CFGNode[] processWhile(WhileStmtNode node)
+```
+Construye el bucle con back-edge:
 
-Este compilador es un proyecto educativo completo que implementa las 4 fases principales: análisis léxico, sintáctico, semántico y generación de código. La arquitectura modular basada en patrones de diseño permite fácil extensión y mantenimiento.
+```
+     condNode (CONDITION) ←──────────────┐
+    /                    \               │
+ True                  False             │
+  /                        \             │
+bodyStatements          afterWhile       │
+    │                  (JOIN, salida)    │
+    └────────────────────────────────────┘ (back edge)
+```
+
+#### Métodos auxiliares privados
+
+```java
+private CFGNode createNode(String label, CFGNode.NodeType type)
+```
+Crea un nodo con ID autoincremental y lo agrega a `allNodes`.
+
+```java
+private void addEdge(CFGNode from, CFGNode to, String label)
+```
+Crea una `CFGEdge` y la registra en los sucesores de `from` y en los predecesores de `to`.
+
+---
+
+### 3. CFGNode
+
+Representa un nodo del CFG. Contiene su tipo, etiqueta, lista de aristas salientes (sucesores) y lista de aristas entrantes (predecesores).
+
+#### Tipos de nodo (`CFGNode.NodeType`)
+
+| Tipo | Forma en DOT | Descripción |
+|---|---|---|
+| `ENTRY` | Círculo verde | Punto de entrada del programa |
+| `EXIT` | Doble círculo rojo | Punto de salida del programa |
+| `STATEMENT` | Rectángulo azul | Sentencia simple: asignación o return |
+| `CONDITION` | Rombo amarillo | Condición de `if` o `while` |
+| `JOIN` | Punto | Confluencia de ramas o salida de bucle |
+
+#### Constructor
+
+```java
+public CFGNode(int id, String label, CFGNode.NodeType type)
+```
+
+#### Métodos de acceso
+
+```java
+public int              getId()           // ID único del nodo
+public String           getLabel()        // etiqueta (texto del nodo)
+public NodeType         getType()         // tipo del nodo
+public List<CFGEdge>    getSuccessors()   // aristas salientes
+public List<CFGEdge>    getPredecessors() // aristas entrantes
+```
+
+#### Métodos de modificación
+
+```java
+public void addSuccessor(CFGEdge edge)
+public void addPredecessor(CFGEdge edge)
+```
+
+#### Métodos de consulta
+
+```java
+public boolean isBranch() // true si tiene más de un sucesor
+public boolean isJoin()   // true si tiene más de un predecesor
+```
+
+#### Clase interna: CFGEdge
+
+Representa una arista dirigida entre dos nodos.
+
+```java
+public static class CFGEdge {
+    public CFGNode getFrom()    // nodo origen
+    public CFGNode getTo()      // nodo destino
+    public String  getLabel()   // "True", "False" o "" para aristas normales
+}
+```
+
+---
+
+### 4. DOTExporter
+
+Exporta la lista de nodos del CFG al formato DOT de Graphviz. Es una clase de utilidad con un único método estático.
+
+#### Método principal
+
+```java
+public static String export(List<CFGNode> nodes)
+```
+
+Genera un string con el grafo completo en formato DOT. El string puede escribirse directamente a un archivo `.dot`.
+
+#### Configuración general del grafo generado
+
+```dot
+digraph CFG {
+    rankdir=TB;
+    fontname="Arial";
+    node [fontname="Arial", fontsize=12];
+    edge [fontname="Arial", fontsize=10];
+    ...
+}
+```
+
+#### Representación visual por tipo de nodo
+
+| Tipo | Atributos DOT |
+|---|---|
+| `ENTRY` | `shape=circle`, `fillcolor=green` |
+| `EXIT` | `shape=doublecircle`, `fillcolor=red` |
+| `STATEMENT` | `shape=box, style="rounded,filled"`, `fillcolor=lightblue` |
+| `CONDITION` | `shape=diamond, style=filled`, `fillcolor=lightyellow` |
+| `JOIN` | `shape=point, width=0.15` |
+
+#### Representación visual de aristas
+
+| Etiqueta | Color |
+|---|---|
+| `"True"` | Verde oscuro (`darkgreen`) |
+| `"False"` | Rojo (`red`) |
+| `""` (normal) | Negro (por defecto) |
+
+#### Métodos privados auxiliares
+
+```java
+private static String nodeId(CFGNode node)
+// Retorna "n" + node.getId() — identificador único en el archivo DOT
+
+private static String escapeLabel(String label)
+// Escapa caracteres especiales: \ " y \n para uso seguro en labels DOT
+```
+
+#### Ejemplo de salida
+
+```dot
+digraph CFG {
+    rankdir=TB;
+    fontname="Arial";
+    node [fontname="Arial", fontsize=12];
+    edge [fontname="Arial", fontsize=10];
+
+    n0 [shape=circle, width=0.3, fixedsize=true, style=filled, fillcolor=green, label="ENTRY"];
+    n1 [shape=doublecircle, width=0.3, fixedsize=true, style=filled, fillcolor=red, label="EXIT"];
+    n2 [shape=box, style="rounded,filled", fillcolor=lightblue, label="x = 3"];
+    n3 [shape=diamond, style=filled, fillcolor=lightyellow, label="y"];
+    n4 [shape=box, style="rounded,filled", fillcolor=lightblue, label="z = (x + 1)"];
+    n5 [shape=box, style="rounded,filled", fillcolor=lightblue, label="y = (x + z)"];
+    n6 [shape=point, width=0.15];
+    n7 [shape=box, style="rounded,filled", fillcolor=lightblue, label="return z"];
+
+    n0 -> n2;
+    n2 -> n3;
+    n3 -> n4 [label="True",  color=darkgreen, fontcolor=darkgreen];
+    n3 -> n5 [label="False", color=red,       fontcolor=red];
+    n4 -> n6;
+    n5 -> n6;
+    n6 -> n7;
+    n7 -> n1;
+}
+```
+
+---
+
+## Archivos de prueba
+
+| Archivo | Descripción |
+|---|---|
+| `test_cfg.txt` | Programa simple con `if/else` |
+| `test_cfg_while.txt` | Programa con bucle `while` |
+| `test_cfg_completo.txt` | Programa con `if` anidado dentro de `while` |
