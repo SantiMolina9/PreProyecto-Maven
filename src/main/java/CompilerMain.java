@@ -2,6 +2,7 @@ import com.ejemplo.parser.MiParser;
 import ast.nodes.program.ProgramNode;
 import cfg.CFGBuilder;
 import cfg.DOTExporter;
+import cfg.PostDominatorComputer;
 
 import java.io.*;
 import java_cup.runtime.Symbol;
@@ -82,6 +83,20 @@ public class CompilerMain {
             System.out.println("-".repeat(40));
             System.out.println(dot);
             System.out.println("-".repeat(40));
+
+            // ========================================
+            // FASE 4: Computo de Post-Dominadores
+            // ========================================
+            System.out.println("\n" + "=".repeat(60));
+            System.out.println("FASE 4: POST-DOMINADORES");
+            System.out.println("=".repeat(60));
+
+            PostDominatorComputer pdomComputer = new PostDominatorComputer(
+                    cfgBuilder.getAllNodes(),
+                    cfgBuilder.getExitNode()
+            );
+            pdomComputer.compute();
+            pdomComputer.printPdom();
 
             // ========================================
             // Resumen
