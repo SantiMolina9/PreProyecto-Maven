@@ -105,7 +105,7 @@ public class CompilerMain {
             System.out.println("FASE 5: GENERACION DOT CON PDOM");
             System.out.println("=".repeat(60));
 
-            String dotPdom = DOTExporter.export(
+            String dotPdom = DOTExporter.exportWithPdom(
                     cfgBuilder.getAllNodes(),
                     pdomComputer.getAllPdom()
             );

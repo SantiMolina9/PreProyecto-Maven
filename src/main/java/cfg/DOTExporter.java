@@ -20,14 +20,6 @@ public class DOTExporter {
      * Exporta la lista de nodos del CFG a formato DOT (sin PDOM).
      */
     public static String export(List<CFGNode> nodes) {
-        return export(nodes, null);
-    }
-
-    /**
-     * Exporta la lista de nodos del CFG a formato DOT, incluyendo
-     * opcionalmente la informacion de Post-Dominadores (PDOM) en cada nodo.
-     */
-    public static String export(List<CFGNode> nodes, Map<CFGNode, Set<CFGNode>> pdomMap) {
         StringBuilder sb = new StringBuilder();
 
         sb.append("digraph CFG {\n");
@@ -42,7 +34,83 @@ public class DOTExporter {
         for (CFGNode node : nodes) {
             sb.append("    ").append(nodeId(node)).append(" [");
 
-            // Construir label con PDOM si esta disponible
+            switch (node.getType()) {
+                case ENTRY:
+                    sb.append("shape=circle, width=0.3, fixedsize=true, ")
+                      .append("style=filled, fillcolor=green, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case EXIT:
+                    sb.append("shape=doublecircle, width=0.3, fixedsize=true, ")
+                      .append("style=filled, fillcolor=red, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case JOIN:
+                    sb.append("shape=point, width=0.15");
+                    break;
+
+                case CONDITION:
+                    sb.append("shape=diamond, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"").append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+
+                case STATEMENT:
+                    sb.append("shape=box, style=\"rounded,filled\", fillcolor=lightblue, ")
+                      .append("label=\"").append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+            }
+
+            sb.append("];\n");
+        }
+
+        sb.append("\n");
+
+        // Declarar aristas
+        for (CFGNode node : nodes) {
+            for (CFGEdge edge : node.getSuccessors()) {
+                sb.append("    ")
+                  .append(nodeId(edge.getFrom()))
+                  .append(" -> ")
+                  .append(nodeId(edge.getTo()));
+
+                if (edge.getLabel() != null && !edge.getLabel().isEmpty()) {
+                    sb.append(" [label=\"").append(edge.getLabel()).append("\"");
+                    if ("True".equals(edge.getLabel())) {
+                        sb.append(", color=darkgreen, fontcolor=darkgreen");
+                    } else if ("False".equals(edge.getLabel())) {
+                        sb.append(", color=red, fontcolor=red");
+                    }
+                    sb.append("]");
+                }
+
+                sb.append(";\n");
+            }
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /**
+     * Exporta el CFG a formato DOT con Post-Dominadores (PDOM) anotados en cada nodo.
+     * Genera ademas una tabla resumen de PDOM.
+     */
+    public static String exportWithPdom(List<CFGNode> nodes, Map<CFGNode, Set<CFGNode>> pdomMap) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("digraph CFG_PDOM {\n");
+        sb.append("    rankdir=TB;\n");
+        sb.append("    fontname=\"Arial\";\n");
+        sb.append("    node [fontname=\"Arial\", fontsize=11];\n");
+        sb.append("    edge [fontname=\"Arial\", fontsize=10];\n");
+        sb.append("\n");
+
+        // Declarar nodos con info PDOM
+        for (CFGNode node : nodes) {
+            sb.append("    ").append(nodeId(node)).append(" [");
+
             String pdomSuffix = "";
             if (pdomMap != null && pdomMap.containsKey(node)) {
                 pdomSuffix = "\\nPDOM: " + formatPdomSet(pdomMap.get(node));
@@ -62,14 +130,9 @@ public class DOTExporter {
                     break;
 
                 case JOIN:
-                    if (pdomMap != null) {
-                        // Si hay PDOM, mostrar el join como nodo visible con info
-                        sb.append("shape=ellipse, style=filled, fillcolor=lightyellow, ")
-                          .append("label=\"n").append(node.getId()).append(" (join)")
-                          .append(pdomSuffix).append("\"");
-                    } else {
-                        sb.append("shape=point, width=0.15");
-                    }
+                    sb.append("shape=ellipse, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(" (join)")
+                      .append(pdomSuffix).append("\"");
                     break;
 
                 case CONDITION:
@@ -102,7 +165,6 @@ public class DOTExporter {
 
                 if (edge.getLabel() != null && !edge.getLabel().isEmpty()) {
                     sb.append(" [label=\"").append(edge.getLabel()).append("\"");
-                    // Colorear aristas True/False
                     if ("True".equals(edge.getLabel())) {
                         sb.append(", color=darkgreen, fontcolor=darkgreen");
                     } else if ("False".equals(edge.getLabel())) {
@@ -115,10 +177,9 @@ public class DOTExporter {
             }
         }
 
-        // Si hay PDOM, agregar tabla resumen como subgrafo
+        // Tabla resumen de Post-Dominadores
         if (pdomMap != null) {
             sb.append("\n");
-            sb.append("    // Tabla resumen de Post-Dominadores\n");
             sb.append("    pdom_table [shape=plaintext, label=<\n");
             sb.append("        <TABLE BORDER=\"1\" CELLBORDER=\"1\" CELLSPACING=\"0\" CELLPADDING=\"4\">\n");
             sb.append("        <TR><TD COLSPAN=\"2\" BGCOLOR=\"lightgray\"><B>Post-Dominadores (PDOM)</B></TD></TR>\n");
