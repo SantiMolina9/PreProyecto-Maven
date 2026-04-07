@@ -99,15 +99,40 @@ public class CompilerMain {
             pdomComputer.printPdom();
 
             // ========================================
+            // FASE 5: Exportar CFG con Post-Dominadores
+            // ========================================
+            System.out.println("=".repeat(60));
+            System.out.println("FASE 5: GENERACION DOT CON PDOM");
+            System.out.println("=".repeat(60));
+
+            String dotPdom = DOTExporter.export(
+                    cfgBuilder.getAllNodes(),
+                    pdomComputer.getAllPdom()
+            );
+
+            String dotPdomFile = inputFile.replace(".txt", "_pdom.dot");
+            try (PrintWriter out = new PrintWriter(dotPdomFile)) {
+                out.print(dotPdom);
+            }
+
+            System.out.println("Archivo DOT con PDOM generado: " + dotPdomFile);
+            System.out.println("\nContenido del archivo DOT con PDOM:");
+            System.out.println("-".repeat(40));
+            System.out.println(dotPdom);
+            System.out.println("-".repeat(40));
+
+            // ========================================
             // Resumen
             // ========================================
             System.out.println("=".repeat(60));
             System.out.println("COMPLETADO EXITOSAMENTE");
             System.out.println("=".repeat(60));
-            System.out.println("\nPara visualizar el CFG, ejecutar:");
-            System.out.println("  dot -Tpng " + dotFile + " -o cfg.png");
-            System.out.println("  dot -Tsvg " + dotFile + " -o cfg.svg");
-            System.out.println("  dot -Tpdf " + dotFile + " -o cfg.pdf");
+            System.out.println("\nArchivos generados:");
+            System.out.println("  " + dotFile + "      (CFG)");
+            System.out.println("  " + dotPdomFile + " (CFG + Post-Dominadores)");
+            System.out.println("\nPara visualizar, ejecutar:");
+            System.out.println("  dot -Tpng " + dotPdomFile + " -o cfg_pdom.png");
+            System.out.println("  dot -Tsvg " + dotPdomFile + " -o cfg_pdom.svg");
             System.out.println("\nO pegar el contenido DOT en: https://dreampuf.github.io/GraphvizOnline/");
 
         } catch (Exception e) {
