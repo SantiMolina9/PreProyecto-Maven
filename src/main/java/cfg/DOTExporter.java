@@ -231,6 +231,89 @@ public class DOTExporter {
     }
 
     /**
+     * Exporta el Arbol de Post-Dominadores (PDT) a formato DOT.
+     * El arbol tiene como raiz al nodo EXIT y cada arista padre->hijo
+     * indica que el padre es el post-dominador inmediato del hijo.
+     */
+    public static String exportPDT(PostDominatorTreeBuilder pdt) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("digraph PDT {\n");
+        sb.append("    // Arbol de Post-Dominadores\n");
+        sb.append("    rankdir=TB;\n");
+        sb.append("    fontname=\"Arial\";\n");
+        sb.append("    node [fontname=\"Arial\", fontsize=12];\n");
+        sb.append("    edge [fontname=\"Arial\", fontsize=10];\n");
+        sb.append("    label=\"Arbol de Post-Dominadores (PDT)\";\n");
+        sb.append("    labelloc=t;\n");
+        sb.append("\n");
+
+        // Recolectar todos los nodos del arbol via BFS desde la raiz
+        List<CFGNode> treeNodes = new java.util.ArrayList<>();
+        java.util.Queue<CFGNode> queue = new java.util.LinkedList<>();
+        queue.add(pdt.getRoot());
+        while (!queue.isEmpty()) {
+            CFGNode current = queue.poll();
+            treeNodes.add(current);
+            for (CFGNode child : pdt.getChildren(current)) {
+                queue.add(child);
+            }
+        }
+
+        // Declarar nodos
+        for (CFGNode node : treeNodes) {
+            sb.append("    ").append(nodeId(node)).append(" [");
+
+            switch (node.getType()) {
+                case ENTRY:
+                    sb.append("shape=circle, width=0.5, style=filled, fillcolor=green, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case EXIT:
+                    sb.append("shape=doublecircle, width=0.5, style=filled, fillcolor=red, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case JOIN:
+                    sb.append("shape=ellipse, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(" (join)\"");
+                    break;
+
+                case CONDITION:
+                    sb.append("shape=diamond, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+
+                case STATEMENT:
+                    sb.append("shape=box, style=\"rounded,filled\", fillcolor=lightblue, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+            }
+
+            sb.append("];\n");
+        }
+
+        sb.append("\n");
+
+        // Declarar aristas del arbol (padre -> hijo)
+        for (CFGNode node : treeNodes) {
+            for (CFGNode child : pdt.getChildren(node)) {
+                sb.append("    ")
+                  .append(nodeId(node))
+                  .append(" -> ")
+                  .append(nodeId(child))
+                  .append(";\n");
+            }
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /**
      * Formatea un conjunto PDOM como string legible: {n0, n1, n3}
      */
     private static String formatPdomSet(Set<CFGNode> set) {

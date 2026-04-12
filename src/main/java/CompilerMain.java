@@ -3,6 +3,7 @@ import ast.nodes.program.ProgramNode;
 import cfg.CFGBuilder;
 import cfg.DOTExporter;
 import cfg.PostDominatorComputer;
+import cfg.PostDominatorTreeBuilder;
 
 import java.io.*;
 import java_cup.runtime.Symbol;
@@ -78,12 +79,28 @@ public class CompilerMain {
             pdomComputer.printPdom();
 
             // ========================================
-            // FASE 4: Exportar CFG + PDOM a DOT (Graphviz)
+            // FASE 4: Arbol de Post-Dominadores (PDT)
             // ========================================
             System.out.println("=".repeat(60));
-            System.out.println("FASE 4: GENERACION DOT (Graphviz)");
+            System.out.println("FASE 4: ARBOL DE POST-DOMINADORES (PDT)");
             System.out.println("=".repeat(60));
 
+            PostDominatorTreeBuilder pdtBuilder = new PostDominatorTreeBuilder(
+                    cfgBuilder.getAllNodes(),
+                    cfgBuilder.getExitNode(),
+                    pdomComputer.getAllPdom()
+            );
+            pdtBuilder.build();
+            pdtBuilder.printTree();
+
+            // ========================================
+            // FASE 5: Exportar CFG + PDOM y PDT a DOT (Graphviz)
+            // ========================================
+            System.out.println("=".repeat(60));
+            System.out.println("FASE 5: GENERACION DOT (Graphviz)");
+            System.out.println("=".repeat(60));
+
+            // Exportar CFG con PDOM
             String dot = DOTExporter.exportWithPdom(
                     cfgBuilder.getAllNodes(),
                     pdomComputer.getAllPdom()
@@ -94,10 +111,21 @@ public class CompilerMain {
                 out.print(dot);
             }
 
-            System.out.println("Archivo DOT generado: " + dotFile);
-            System.out.println("\nContenido del archivo DOT:");
+            System.out.println("Archivo DOT del CFG+PDOM generado: " + dotFile);
+
+            // Exportar Arbol de Post-Dominadores
+            String pdtDot = DOTExporter.exportPDT(pdtBuilder);
+
+            String pdtDotFile = inputFile.replace(".txt", "_pdt.dot");
+            try (PrintWriter out = new PrintWriter(pdtDotFile)) {
+                out.print(pdtDot);
+            }
+
+            System.out.println("Archivo DOT del PDT generado: " + pdtDotFile);
+
+            System.out.println("\nContenido del archivo DOT (PDT):");
             System.out.println("-".repeat(40));
-            System.out.println(dot);
+            System.out.println(pdtDot);
             System.out.println("-".repeat(40));
 
             // ========================================
@@ -106,10 +134,12 @@ public class CompilerMain {
             System.out.println("=".repeat(60));
             System.out.println("COMPLETADO EXITOSAMENTE");
             System.out.println("=".repeat(60));
-            System.out.println("\nArchivo generado: " + dotFile);
+            System.out.println("\nArchivos generados:");
+            System.out.println("  CFG + PDOM: " + dotFile);
+            System.out.println("  PDT:        " + pdtDotFile);
             System.out.println("\nPara visualizar, ejecutar:");
             System.out.println("  dot -Tpng " + dotFile + " -o cfg.png");
-            System.out.println("  dot -Tsvg " + dotFile + " -o cfg.svg");
+            System.out.println("  dot -Tpng " + pdtDotFile + " -o pdt.png");
             System.out.println("\nO pegar el contenido DOT en: https://dreampuf.github.io/GraphvizOnline/");
 
         } catch (Exception e) {
