@@ -13,6 +13,7 @@
 2. [Instalación y Configuración](#instalación-y-configuración)
 3. [Arquitectura](#arquitectura)
 4. [Componentes](#componentes)
+5. [Archivos de prueba](#archivos-de-prueba)
 
 ---
 
@@ -22,7 +23,11 @@
 
 Este es un **compilador educativo** desarrollado en Java que implementa un compilador completo con las tres fases fundamentales: análisis léxico, análisis sintáctico y análisis semántico. El compilador genera código assembler x86-64 a partir de un lenguaje simple de alto nivel.
 
-Como extensión para la materia **Análisis Estático de Programas**, se agrega la construcción del **Grafo de Flujo de Control (CFG)** desde el AST, con exportación al formato DOT de Graphviz.
+Como extensión para la materia **Análisis Estático de Programas**, se agrega:
+- La construcción del **Grafo de Flujo de Control (CFG)** desde el AST.
+- El cómputo de **Post-Dominadores (PDOM)** mediante el algoritmo iterativo de punto fijo.
+- La construcción del **Árbol de Post-Dominadores (PDT)** mediante el algoritmo BuildDtree.
+- La exportación de todos los grafos al formato DOT de Graphviz.
 
 ### Características principales
 
@@ -31,26 +36,24 @@ Como extensión para la materia **Análisis Estático de Programas**, se agrega 
 - **Análisis Semántico**: Validación de tipos, scopes y variables
 - **Generación de Código**: Producción de código assembler x86-64
 - **CFG**: Construcción del Grafo de Flujo de Control a partir del AST
-- **Visualización**: Exportación del CFG a formato DOT (Graphviz)
+- **Post-Dominadores**: Cómputo del conjunto PDOM para cada nodo del CFG
+- **PDT**: Construcción del Árbol de Post-Dominadores a partir de los conjuntos PDOM
+- **Visualización**: Exportación del CFG+PDOM y del PDT a formato DOT (Graphviz)
 - **Manejo de Errores**: Sistema completo con errores léxicos, sintácticos, semánticos y de tipos
-- **Suite de Tests**: 12 casos de prueba cobriendo diferentes escenarios
-
+- **Suite de Tests**: Casos de prueba cubriendo diferentes escenarios
 
 ### Ejemplo de código compilable
 
 ```c
-int main() {
-    int x = 10;
-    int y = 20;
-    int resultado;
-
-    if (x < y) {
-        resultado = x + y;
-    } else {
-        resultado = x - y;
+integer f(){
+    x = 3 ;
+    if (y) {
+        z = x + 1 ;
     }
-
-    return resultado;
+    else {
+        y = x + z ;
+    }
+    return z ;
 }
 ```
 
@@ -59,7 +62,7 @@ int main() {
 - Java 11 o superior
 - Maven 3.6+
 - Git
-- Graphviz (opcional, para visualizar el CFG generado)
+- Graphviz (opcional, para visualizar los grafos generados)
 
 ### Inicio rápido
 
@@ -77,8 +80,11 @@ mvn exec:java "-Dexec.args=src/main/resources/test_cfg.txt"
 # Ejecutar con archivo de prueba (Linux/Mac)
 mvn exec:java -Dexec.args="src/main/resources/test_cfg.txt"
 
-# Visualizar el CFG generado
+# Visualizar el CFG+PDOM generado
 dot -Tpng src/main/resources/test_cfg.dot -o cfg.png
+
+# Visualizar el PDT generado
+dot -Tpng src/main/resources/test_cfg_pdt.dot -o pdt.png
 ```
 
 ---
@@ -119,59 +125,69 @@ compiler/
 └── src/
     └── main/
         ├── java/
-        │   ├── CompilerMain.java           # Punto de entrada
-        │   ├── ast/                        # Árbol sintáctico abstracto
+        │   ├── CompilerMain.java                  # Punto de entrada
+        │   ├── ast/                               # Árbol sintáctico abstracto
         │   │   ├── ASTNode.java
         │   │   ├── nodes/
-        │   │   │   ├── expression/         # BinaryOpNode, NumberNode, VariableNode...
-        │   │   │   ├── statement/          # AssignmentNode, IfStmtNode, WhileStmtNode...
-        │   │   │   └── program/            # ProgramNode, FunctionDefNode, ParamNode
+        │   │   │   ├── expression/                # BinaryOpNode, NumberNode, VariableNode...
+        │   │   │   ├── statement/                 # AssignmentNode, IfStmtNode, WhileStmtNode...
+        │   │   │   └── program/                   # ProgramNode, FunctionDefNode, ParamNode
         │   │   ├── visitor/
         │   │   │   └── ASTVisitor.java
         │   │   └── utils/
         │   │       └── ASTUtils.java
-        │   ├── cfg/                        # Grafo de Flujo de Control
-        │   │   ├── CFGBuilder.java         # Construcción del CFG desde el AST
-        │   │   ├── CFGNode.java            # Nodo y arista del CFG
-        │   │   └── DOTExporter.java        # Exportador a formato Graphviz
+        │   ├── cfg/                               # Análisis de flujo de control
+        │   │   ├── CFGBuilder.java                # Construcción del CFG desde el AST
+        │   │   ├── CFGNode.java                   # Nodo y arista del CFG
+        │   │   ├── DOTExporter.java               # Exportador a formato Graphviz
+        │   │   ├── PostDominatorComputer.java      # Cómputo de Post-Dominadores (PDOM)
+        │   │   └── PostDominatorTreeBuilder.java  # Árbol de Post-Dominadores (PDT)
         │   ├── cup/
         │   │   └── parser.cup
         │   └── jflex/
         │       └── lexer.flex
-        └── resources/                      # Archivos de prueba y salidas .dot / .asm
+        └── resources/                             # Archivos de prueba y salidas .dot / .asm
 ```
 
 ---
 
 ## Arquitectura
 
-### Pipeline del CFG Builder
+### Pipeline completo
 
 ```
 Código Fuente (.txt)
         │
         ▼
-┌─────────────┐
-│    Lexer    │  JFlex → Tokens
-└──────┬──────┘
-       │ Tokens
-       ▼
-┌─────────────┐
-│   MiParser  │  CUP → AST (ProgramNode)
-└──────┬──────┘
-       │ AST
-       ▼
-┌─────────────┐
-│  CFGBuilder │  AST → Lista de CFGNodes
-└──────┬──────┘
-       │ Lista de CFGNodes
-       ▼
-┌─────────────┐
-│ DOTExporter │  CFG → archivo .dot
-└─────────────┘
-       │
-       ▼
-  archivo .dot  (visualizable con Graphviz o en línea)
+┌─────────────────┐
+│      Lexer      │  JFlex → Tokens
+└────────┬────────┘
+         │ Tokens
+         ▼
+┌─────────────────┐
+│    MiParser     │  CUP → AST (ProgramNode)
+└────────┬────────┘
+         │ AST
+         ▼
+┌─────────────────┐
+│   CFGBuilder    │  AST → Lista de CFGNodes
+└────────┬────────┘
+         │ Lista de CFGNodes
+         ▼
+┌──────────────────────────┐
+│  PostDominatorComputer   │  CFG → PDOM(n) para cada nodo
+└────────┬─────────────────┘
+         │ Map<CFGNode, Set<CFGNode>>
+         ▼
+┌──────────────────────────┐
+│ PostDominatorTreeBuilder │  PDOM → Árbol PDT
+└────────┬─────────────────┘
+         │ PDT (padre → hijos)
+         ▼
+┌─────────────────┐
+│  DOTExporter    │  CFG+PDOM → archivo .dot
+│                 │  PDT      → archivo _pdt.dot
+└─────────────────┘
 ```
 
 ### Gramática del lenguaje (parser.cup)
@@ -193,13 +209,11 @@ value      → id | number
 
 ### 1. CompilerMain
 
-Punto de entrada del pipeline. Orquesta las tres fases: parseo, construcción del CFG y exportación DOT.
+Punto de entrada del pipeline. Orquesta las cinco fases: parseo, construcción del CFG, cómputo de post-dominadores, construcción del PDT y exportación DOT.
 
 ```java
 public static void main(String[] args)
 ```
-
-Ejecuta en orden:
 
 **Fase 1 — Análisis Léxico y Sintáctico:**
 ```java
@@ -213,16 +227,34 @@ cfgBuilder.build(ast);
 cfgBuilder.printCFG();
 ```
 
-**Fase 3 — Exportación DOT:**
+**Fase 3 — Cómputo de Post-Dominadores:**
 ```java
-String dot = DOTExporter.export(cfgBuilder.getAllNodes());
-// Guarda el .dot junto al archivo de entrada
+PostDominatorComputer pdomComputer = new PostDominatorComputer(
+        cfgBuilder.getAllNodes(), cfgBuilder.getExitNode());
+pdomComputer.compute();
+pdomComputer.printPdom();
 ```
 
-Al finalizar imprime el comando Graphviz para visualizar el grafo:
+**Fase 4 — Árbol de Post-Dominadores:**
+```java
+PostDominatorTreeBuilder pdtBuilder = new PostDominatorTreeBuilder(
+        cfgBuilder.getAllNodes(), cfgBuilder.getExitNode(), pdomComputer.getAllPdom());
+pdtBuilder.build();
+pdtBuilder.printTree();
+```
+
+**Fase 5 — Exportación DOT:**
+```java
+// CFG con PDOM anotado
+String dot = DOTExporter.exportWithPdom(cfgBuilder.getAllNodes(), pdomComputer.getAllPdom());
+// Árbol de Post-Dominadores
+String pdtDot = DOTExporter.exportPDT(pdtBuilder);
+```
+
+Al finalizar imprime los comandos Graphviz para visualizar los grafos:
 ```
 dot -Tpng test_cfg.dot -o cfg.png
-dot -Tsvg test_cfg.dot -o cfg.svg
+dot -Tpng test_cfg_pdt.dot -o pdt.png
 ```
 
 ---
@@ -260,7 +292,7 @@ Procesa una secuencia de sentencias conectándolas en cadena. Si la lista está 
 ```java
 private CFGNode[] processStmt(StmtNode stmt)
 ```
-Delega al método específico según el tipo concreto de sentencia (`AssignmentNode`, `ReturnStmtNode`, `IfStmtNode`, `WhileStmtNode`). Para tipos no reconocidos, crea un nodo genérico con el `toString()` del nodo.
+Delega al método específico según el tipo concreto de sentencia. Para tipos no reconocidos, crea un nodo genérico.
 
 ```java
 private CFGNode[] processAssignment(AssignmentNode node)
@@ -287,8 +319,6 @@ thenBranch             elseBranch (o directo a joinNode si no hay else)
      ──→  joinNode (JOIN) ←──
 ```
 
-Si no hay rama `else`, la arista `False` va directamente al `joinNode`.
-
 ```java
 private CFGNode[] processWhile(WhileStmtNode node)
 ```
@@ -304,18 +334,6 @@ bodyStatements          afterWhile       │
     └────────────────────────────────────┘ (back edge)
 ```
 
-#### Métodos auxiliares privados
-
-```java
-private CFGNode createNode(String label, CFGNode.NodeType type)
-```
-Crea un nodo con ID autoincremental y lo agrega a `allNodes`.
-
-```java
-private void addEdge(CFGNode from, CFGNode to, String label)
-```
-Crea una `CFGEdge` y la registra en los sucesores de `from` y en los predecesores de `to`.
-
 ---
 
 ### 3. CFGNode
@@ -330,37 +348,7 @@ Representa un nodo del CFG. Contiene su tipo, etiqueta, lista de aristas salient
 | `EXIT` | Doble círculo rojo | Punto de salida del programa |
 | `STATEMENT` | Rectángulo azul | Sentencia simple: asignación o return |
 | `CONDITION` | Rombo amarillo | Condición de `if` o `while` |
-| `JOIN` | Punto | Confluencia de ramas o salida de bucle |
-
-#### Constructor
-
-```java
-public CFGNode(int id, String label, CFGNode.NodeType type)
-```
-
-#### Métodos de acceso
-
-```java
-public int              getId()           // ID único del nodo
-public String           getLabel()        // etiqueta (texto del nodo)
-public NodeType         getType()         // tipo del nodo
-public List<CFGEdge>    getSuccessors()   // aristas salientes
-public List<CFGEdge>    getPredecessors() // aristas entrantes
-```
-
-#### Métodos de modificación
-
-```java
-public void addSuccessor(CFGEdge edge)
-public void addPredecessor(CFGEdge edge)
-```
-
-#### Métodos de consulta
-
-```java
-public boolean isBranch() // true si tiene más de un sucesor
-public boolean isJoin()   // true si tiene más de un predecesor
-```
+| `JOIN` | Punto/Elipse | Confluencia de ramas o salida de bucle |
 
 #### Clase interna: CFGEdge
 
@@ -376,29 +364,93 @@ public static class CFGEdge {
 
 ---
 
-### 4. DOTExporter
+### 4. PostDominatorComputer
 
-Exporta la lista de nodos del CFG al formato DOT de Graphviz. Es una clase de utilidad con un único método estático.
+Computa los Post-Dominadores (PDOM) de un CFG usando el algoritmo iterativo de punto fijo sobre el CFG reverso.
 
-#### Método principal
+#### Algoritmo (según slides de clase)
+
+Para computar post-dominadores se obtiene el CFG reverso invirtiendo todas las aristas y se corre el algoritmo DOM sobre él. En el CFG reverso el nodo de entrada es el `EXIT` del CFG original.
+
+```
+PDOM(exit) = {exit}
+Para todo nodo x ≠ exit:  PDOM(x) = N  (todos los nodos)
+
+Hasta que no haya cambios:
+  Para todo nodo x ≠ exit:
+    PDOM(x) = {x} ∪ (⋂ PDOM(s)  para todo sucesor s de x en el CFG original)
+```
+
+Al converger: el nodo `d` pertenece a `PDOM(n)` si y solo si `d` post-domina a `n`.
+
+#### Métodos principales
+
+```java
+public void                          compute()        // ejecuta el algoritmo
+public Set<CFGNode>                  getPdom(CFGNode) // PDOM de un nodo
+public Map<CFGNode, Set<CFGNode>>    getAllPdom()     // mapa completo
+public void                          printPdom()      // imprime tabla por stdout
+```
+
+---
+
+### 5. PostDominatorTreeBuilder
+
+Construye el Árbol de Post-Dominadores (PDT) a partir de los conjuntos PDOM, implementando el algoritmo **BuildDtree** (ref: *rep-analysis-soft.pdf*, Figura 11).
+
+#### Algoritmo BuildDtree
+
+```
+Entrada: Conjunto N, raíz n0 (EXIT), D(n) = PDOM(n) para cada nodo n.
+Salida:  Árbol de post-dominadores PDT.
+
+1. n0 es la raíz del PDT (EXIT)
+2. Poner n0 en la cola Q
+3. Para cada nodo n: D(n) = D(n) − {n}   (remover el propio nodo)
+4. Mientras Q no esté vacía:
+     m = siguiente nodo en Q
+     Para cada nodo n tal que D(n) no esté vacío:
+       Si D(n) contiene m:
+         D(n) = D(n) − {m}
+         Si D(n) quedó vacío:
+           Agregar n como hijo de m en PDT
+           Agregar n a Q
+```
+
+El post-dominador inmediato de un nodo `n` es su padre en el árbol resultante.
+
+#### Métodos principales
+
+```java
+public void              build()              // ejecuta el algoritmo
+public CFGNode           getRoot()            // raíz del árbol (EXIT)
+public List<CFGNode>     getChildren(node)    // hijos de un nodo
+public CFGNode           getParent(node)      // padre (ipdom) de un nodo
+public void              printTree()          // imprime el árbol por stdout
+```
+
+---
+
+### 6. DOTExporter
+
+Exporta el CFG y el PDT al formato DOT de Graphviz. Es una clase de utilidad con métodos estáticos.
+
+#### Métodos principales
 
 ```java
 public static String export(List<CFGNode> nodes)
 ```
+Exporta el CFG plano sin información de PDOM.
 
-Genera un string con el grafo completo en formato DOT. El string puede escribirse directamente a un archivo `.dot`.
-
-#### Configuración general del grafo generado
-
-```dot
-digraph CFG {
-    rankdir=TB;
-    fontname="Arial";
-    node [fontname="Arial", fontsize=12];
-    edge [fontname="Arial", fontsize=10];
-    ...
-}
+```java
+public static String exportWithPdom(List<CFGNode> nodes, Map<CFGNode, Set<CFGNode>> pdomMap)
 ```
+Exporta el CFG con los conjuntos PDOM anotados en cada nodo, más una tabla resumen de post-dominadores.
+
+```java
+public static String exportPDT(PostDominatorTreeBuilder pdt)
+```
+Exporta el Árbol de Post-Dominadores con la raíz en `EXIT` y aristas padre → hijo representando la relación de post-dominación inmediata.
 
 #### Representación visual por tipo de nodo
 
@@ -408,9 +460,9 @@ digraph CFG {
 | `EXIT` | `shape=doublecircle`, `fillcolor=red` |
 | `STATEMENT` | `shape=box, style="rounded,filled"`, `fillcolor=lightblue` |
 | `CONDITION` | `shape=diamond, style=filled`, `fillcolor=lightyellow` |
-| `JOIN` | `shape=point, width=0.15` |
+| `JOIN` | `shape=point` (en CFG) / `shape=ellipse` (en CFG+PDOM y PDT) |
 
-#### Representación visual de aristas
+#### Representación visual de aristas del CFG
 
 | Etiqueta | Color |
 |---|---|
@@ -418,42 +470,30 @@ digraph CFG {
 | `"False"` | Rojo (`red`) |
 | `""` (normal) | Negro (por defecto) |
 
-#### Métodos privados auxiliares
+#### Archivos generados
 
-```java
-private static String nodeId(CFGNode node)
-// Retorna "n" + node.getId() — identificador único en el archivo DOT
+A partir de un archivo `nombre.txt`, el pipeline produce:
 
-private static String escapeLabel(String label)
-// Escapa caracteres especiales: \ " y \n para uso seguro en labels DOT
-```
+| Archivo | Contenido |
+|---|---|
+| `nombre.dot` | CFG con conjuntos PDOM anotados + tabla resumen |
+| `nombre_pdt.dot` | Árbol de Post-Dominadores (PDT) |
 
-#### Ejemplo de salida
+#### Ejemplo de salida (CFG simple)
 
 ```dot
-digraph CFG {
+digraph CFG_PDOM {
     rankdir=TB;
-    fontname="Arial";
-    node [fontname="Arial", fontsize=12];
-    edge [fontname="Arial", fontsize=10];
-
-    n0 [shape=circle, width=0.3, fixedsize=true, style=filled, fillcolor=green, label="ENTRY"];
-    n1 [shape=doublecircle, width=0.3, fixedsize=true, style=filled, fillcolor=red, label="EXIT"];
-    n2 [shape=box, style="rounded,filled", fillcolor=lightblue, label="x = 3"];
-    n3 [shape=diamond, style=filled, fillcolor=lightyellow, label="y"];
-    n4 [shape=box, style="rounded,filled", fillcolor=lightblue, label="z = (x + 1)"];
-    n5 [shape=box, style="rounded,filled", fillcolor=lightblue, label="y = (x + z)"];
-    n6 [shape=point, width=0.15];
-    n7 [shape=box, style="rounded,filled", fillcolor=lightblue, label="return z"];
-
+    ...
+    n0 [shape=circle, ..., label="ENTRY"];
+    n1 [shape=doublecircle, ..., label="EXIT"];
+    n2 [shape=box, ..., label="n2: x = 3\nPDOM: {n2, n3, n6, n7, n1}"];
+    n3 [shape=diamond, ..., label="n3: y\nPDOM: {n3, n6, n7, n1}"];
+    ...
     n0 -> n2;
-    n2 -> n3;
     n3 -> n4 [label="True",  color=darkgreen, fontcolor=darkgreen];
     n3 -> n5 [label="False", color=red,       fontcolor=red];
-    n4 -> n6;
-    n5 -> n6;
-    n6 -> n7;
-    n7 -> n1;
+    ...
 }
 ```
 
@@ -466,3 +506,16 @@ digraph CFG {
 | `test_cfg.txt` | Programa simple con `if/else` |
 | `test_cfg_while.txt` | Programa con bucle `while` |
 | `test_cfg_completo.txt` | Programa con `if` anidado dentro de `while` |
+| `test_bueno.txt` | Programa con múltiples estructuras de control |
+| `test_completo_exitoso.txt` | Programa con todas las construcciones soportadas |
+| `test_integral.txt` | Programa de prueba integral |
+| `test_expresiones_complejas.txt` | Programa con expresiones aritméticas y booleanas complejas |
+| `test_warning_no_inicializada.txt` | Variables usadas sin inicializar |
+| `test_error_tipos.txt` | Errores de tipos |
+| `test_error_duplicada.txt` | Variables declaradas más de una vez |
+| `test_error_no_declarada.txt` | Variables usadas sin declarar |
+| `test_error_ambitos.txt` | Variables fuera de su ámbito |
+| `test_error_return.txt` | Return con tipo incorrecto |
+| `test_division_cero.txt` | División por cero |
+| `test_malo.txt` | Programa con múltiples errores semánticos |
+| `test_scopes.txt` | Prueba de scoping de variables |
