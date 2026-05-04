@@ -27,6 +27,7 @@ Como extensión para la materia **Análisis Estático de Programas**, se agrega:
 - La construcción del **Grafo de Flujo de Control (CFG)** desde el AST.
 - El cómputo de **Post-Dominadores (PDOM)** mediante el algoritmo iterativo de punto fijo.
 - La construcción del **Árbol de Post-Dominadores (PDT)** mediante el algoritmo BuildDtree.
+- La construcción del **Grafo de Dependencias de Control (CDG)** mediante el algoritmo de Ferrante et al.
 - La exportación de todos los grafos al formato DOT de Graphviz.
 
 ### Características principales
@@ -38,7 +39,8 @@ Como extensión para la materia **Análisis Estático de Programas**, se agrega:
 - **CFG**: Construcción del Grafo de Flujo de Control a partir del AST
 - **Post-Dominadores**: Cómputo del conjunto PDOM para cada nodo del CFG
 - **PDT**: Construcción del Árbol de Post-Dominadores a partir de los conjuntos PDOM
-- **Visualización**: Exportación del CFG+PDOM y del PDT a formato DOT (Graphviz)
+- **CDG**: Construcción del Grafo de Dependencias de Control a partir del PDT
+- **Visualización**: Exportación del CFG+PDOM, el PDT y el CDG a formato DOT (Graphviz)
 - **Manejo de Errores**: Sistema completo con errores léxicos, sintácticos, semánticos y de tipos
 - **Suite de Tests**: Casos de prueba cubriendo diferentes escenarios
 
@@ -85,6 +87,9 @@ dot -Tpng src/main/resources/test_cfg.dot -o cfg.png
 
 # Visualizar el PDT generado
 dot -Tpng src/main/resources/test_cfg_pdt.dot -o pdt.png
+
+# Visualizar el CDG generado
+dot -Tpng src/main/resources/test_cfg_cdg.dot -o cdg.png
 ```
 
 ---
@@ -117,6 +122,14 @@ mvn exec:java -Dexec.args="src/main/resources/{nombre_archivo}.txt"
 
 La generación del parser y el lexer están automatizados en el `pom.xml`.
 
+Se generan tres archivos DOT por cada programa analizado:
+
+| Archivo generado | Contenido |
+|---|---|
+| `nombre.dot` | CFG con conjuntos PDOM anotados |
+| `nombre_pdt.dot` | Árbol de Post-Dominadores |
+| `nombre_cdg.dot` | Grafo de Dependencias de Control |
+
 ### Estructura del proyecto
 
 ```
@@ -141,7 +154,8 @@ compiler/
         │   │   ├── CFGNode.java                   # Nodo y arista del CFG
         │   │   ├── DOTExporter.java               # Exportador a formato Graphviz
         │   │   ├── PostDominatorComputer.java      # Cómputo de Post-Dominadores (PDOM)
-        │   │   └── PostDominatorTreeBuilder.java  # Árbol de Post-Dominadores (PDT)
+        │   │   ├── PostDominatorTreeBuilder.java  # Árbol de Post-Dominadores (PDT)
+        │   │   └── CDGBuilder.java                # Grafo de Dependencias de Control (CDG)
         │   ├── cup/
         │   │   └── parser.cup
         │   └── jflex/
@@ -185,8 +199,14 @@ Código Fuente (.txt)
          │ PDT (padre → hijos)
          ▼
 ┌─────────────────┐
+│   CDGBuilder    │  CFG + PDT → CDG (Ferrante et al.)
+└────────┬────────┘
+         │ Map<CFGNode, List<CDGEdge>>
+         ▼
+┌─────────────────┐
 │  DOTExporter    │  CFG+PDOM → archivo .dot
 │                 │  PDT      → archivo _pdt.dot
+│                 │  CDG      → archivo _cdg.dot
 └─────────────────┘
 ```
 
@@ -209,7 +229,7 @@ value      → id | number
 
 ### 1. CompilerMain
 
-Punto de entrada del pipeline. Orquesta las cinco fases: parseo, construcción del CFG, cómputo de post-dominadores, construcción del PDT y exportación DOT.
+Punto de entrada del pipeline. Orquesta las seis fases: parseo, construcción del CFG, cómputo de post-dominadores, construcción del PDT, construcción del CDG y exportación DOT.
 
 ```java
 public static void main(String[] args)
@@ -243,7 +263,7 @@ pdtBuilder.build();
 pdtBuilder.printTree();
 ```
 
-**Fase 5 — Exportación DOT:**
+**Fase 5 — Exportación DOT (CFG+PDOM y PDT):**
 ```java
 // CFG con PDOM anotado
 String dot = DOTExporter.exportWithPdom(cfgBuilder.getAllNodes(), pdomComputer.getAllPdom());
@@ -251,10 +271,19 @@ String dot = DOTExporter.exportWithPdom(cfgBuilder.getAllNodes(), pdomComputer.g
 String pdtDot = DOTExporter.exportPDT(pdtBuilder);
 ```
 
+**Fase 6 — Control Dependence Graph:**
+```java
+CDGBuilder cdgBuilder = new CDGBuilder(cfgBuilder.getAllNodes(), pdtBuilder);
+cdgBuilder.build();
+cdgBuilder.printCDG();
+String cdgDot = DOTExporter.exportCDG(cfgBuilder.getAllNodes(), cdgBuilder);
+```
+
 Al finalizar imprime los comandos Graphviz para visualizar los grafos:
 ```
 dot -Tpng test_cfg.dot -o cfg.png
 dot -Tpng test_cfg_pdt.dot -o pdt.png
+dot -Tpng test_cfg_cdg.dot -o cdg.png
 ```
 
 ---
@@ -431,9 +460,118 @@ public void              printTree()          // imprime el árbol por stdout
 
 ---
 
-### 6. DOTExporter
+### 6. CDGBuilder
 
-Exporta el CFG y el PDT al formato DOT de Graphviz. Es una clase de utilidad con métodos estáticos.
+Construye el Grafo de Dependencias de Control (CDG) a partir del CFG y el PDT, implementando el algoritmo de **Ferrante, Ottenstein y Warren (1987)**.
+
+#### ¿Qué es el CDG?
+
+El CDG captura las **dependencias de control** entre nodos: una arista `A → Y` en el CDG significa que la ejecución de `Y` depende de cuál rama toma `A`. Dicho de otro modo, `Y` es control-dependiente de `A` si:
+
+- Existe una rama de `A` por la que `Y` siempre se ejecuta, y
+- Existe otra rama de `A` por la que `Y` puede no ejecutarse.
+
+Los nodos sin aristas CDG entrantes son de **ejecución incondicional** (no dependen de ningún predicado).
+
+#### Algoritmo (Ferrante et al., 1987)
+
+```
+Para cada arista (A → B) en el CFG:
+  Sea L = LCA(A, B) en el PDT   // Ancestro Común Más Profundo
+  Para cada nodo Y en el camino de B hasta L (sin incluir L):
+    Y es control-dependiente de A  →  agregar arista CDG A → Y
+  Caso especial: si L == A (bucles while):
+    A también es control-dependiente de sí mismo  →  agregar self-loop A → A
+```
+
+El **LCA en el PDT** se calcula subiendo desde `B` hasta encontrar el primer nodo que sea también ancestro de `A`.
+
+#### Ejemplo: if/else
+
+```
+integer f() {
+    if (cond) {   // n1: condición
+        y = 1;    // n2
+    } else {
+        y = -1;   // n3
+    }
+    z = 2;        // n4 — siempre se ejecuta
+}
+```
+
+PDT (raíz = EXIT):
+```
+EXIT
+└── z = 2  (n4)
+    └── join  (n5)
+        ├── cond  (n1)
+        │   └── ENTRY
+        ├── y = 1  (n2)
+        └── y = -1 (n3)
+```
+
+CDG resultante:
+```
+n1 (cond) --[True]-->  n2 (y = 1)
+n1 (cond) --[False]--> n3 (y = -1)
+```
+`n4 (z = 2)` no tiene aristas CDG entrantes → se ejecuta incondicionalmente.
+
+#### Ejemplo: while
+
+```
+integer f() {
+    while (cond) {   // n1: condición
+        y = y - 1;   // n2
+    }
+    z = 2;           // n3
+}
+```
+
+CDG resultante:
+```
+n1 (cond) --[True]--> n2 (y = y - 1)
+n1 (cond) --[True]--> n1 (cond)      ← self-loop: la condición controla su propia re-evaluación
+```
+`n3 (z = 2)` es incondicional.
+
+#### Métodos principales
+
+```java
+public void build()
+```
+Ejecuta el algoritmo de Ferrante sobre todas las aristas del CFG.
+
+```java
+public Map<CFGNode, List<CDGEdge>> getAllEdges()
+```
+Retorna el mapa `predicado → lista de aristas CDG salientes`.
+
+```java
+public List<CDGEdge> getIncomingDependencies(CFGNode node)
+```
+Retorna los predicados de los que `node` es control-dependiente (aristas entrantes al nodo).
+
+```java
+public void printCDG()
+```
+Imprime el CDG y un resumen tabulado por nodo indicando de quién depende cada uno.
+
+#### Clase interna: CDGEdge
+
+```java
+public static class CDGEdge {
+    public CFGNode getPredicate()  // nodo predicado (A)
+    public CFGNode getDependent()  // nodo dependiente (Y)
+    public String  getLabel()      // "True", "False" o ""
+}
+```
+
+---
+
+### 7. DOTExporter
+
+Exporta el CFG, el PDT y el CDG al formato DOT de Graphviz. Es una clase de utilidad con métodos estáticos.
 
 #### Métodos principales
 
@@ -452,6 +590,11 @@ public static String exportPDT(PostDominatorTreeBuilder pdt)
 ```
 Exporta el Árbol de Post-Dominadores con la raíz en `EXIT` y aristas padre → hijo representando la relación de post-dominación inmediata.
 
+```java
+public static String exportCDG(List<CFGNode> nodes, CDGBuilder cdg)
+```
+Exporta el CDG manteniendo la misma paleta visual del CFG. Las aristas CDG se dibujan como **flechas punteadas** (`style=dashed`) para distinguirlas de las aristas de flujo.
+
 #### Representación visual por tipo de nodo
 
 | Tipo | Atributos DOT |
@@ -460,15 +603,14 @@ Exporta el Árbol de Post-Dominadores con la raíz en `EXIT` y aristas padre →
 | `EXIT` | `shape=doublecircle`, `fillcolor=red` |
 | `STATEMENT` | `shape=box, style="rounded,filled"`, `fillcolor=lightblue` |
 | `CONDITION` | `shape=diamond, style=filled`, `fillcolor=lightyellow` |
-| `JOIN` | `shape=point` (en CFG) / `shape=ellipse` (en CFG+PDOM y PDT) |
+| `JOIN` | `shape=point` (en CFG) / `shape=ellipse` (en CFG+PDOM, PDT y CDG) |
 
-#### Representación visual de aristas del CFG
+#### Representación visual de aristas
 
-| Etiqueta | Color |
-|---|---|
-| `"True"` | Verde oscuro (`darkgreen`) |
-| `"False"` | Rojo (`red`) |
-| `""` (normal) | Negro (por defecto) |
+| Grafo | Estilo | Etiqueta `"True"` | Etiqueta `"False"` |
+|---|---|---|---|
+| CFG | Sólida | Verde oscuro | Rojo |
+| CDG | Punteada (`dashed`) | Verde oscuro | Rojo |
 
 #### Archivos generados
 
@@ -478,6 +620,7 @@ A partir de un archivo `nombre.txt`, el pipeline produce:
 |---|---|
 | `nombre.dot` | CFG con conjuntos PDOM anotados + tabla resumen |
 | `nombre_pdt.dot` | Árbol de Post-Dominadores (PDT) |
+| `nombre_cdg.dot` | Grafo de Dependencias de Control (CDG) |
 
 #### Ejemplo de salida (CFG simple)
 

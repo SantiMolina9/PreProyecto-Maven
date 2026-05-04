@@ -1,5 +1,6 @@
 import com.ejemplo.parser.MiParser;
 import ast.nodes.program.ProgramNode;
+import cfg.CDGBuilder;
 import cfg.CFGBuilder;
 import cfg.DOTExporter;
 import cfg.PostDominatorComputer;
@@ -123,10 +124,25 @@ public class CompilerMain {
 
             System.out.println("Archivo DOT del PDT generado: " + pdtDotFile);
 
-            System.out.println("\nContenido del archivo DOT (PDT):");
-            System.out.println("-".repeat(40));
-            System.out.println(pdtDot);
-            System.out.println("-".repeat(40));
+            // ========================================
+            // FASE 6: Control Dependence Graph (CDG)
+            // ========================================
+            System.out.println("\n" + "=".repeat(60));
+            System.out.println("FASE 6: CONTROL DEPENDENCE GRAPH (CDG)");
+            System.out.println("=".repeat(60));
+
+            CDGBuilder cdgBuilder = new CDGBuilder(cfgBuilder.getAllNodes(), pdtBuilder);
+            cdgBuilder.build();
+            cdgBuilder.printCDG();
+
+            String cdgDot = DOTExporter.exportCDG(cfgBuilder.getAllNodes(), cdgBuilder);
+
+            String cdgDotFile = inputFile.replace(".txt", "_cdg.dot");
+            try (PrintWriter out = new PrintWriter(cdgDotFile)) {
+                out.print(cdgDot);
+            }
+
+            System.out.println("Archivo DOT del CDG generado: " + cdgDotFile);
 
             // ========================================
             // Resumen
@@ -137,9 +153,11 @@ public class CompilerMain {
             System.out.println("\nArchivos generados:");
             System.out.println("  CFG + PDOM: " + dotFile);
             System.out.println("  PDT:        " + pdtDotFile);
+            System.out.println("  CDG:        " + cdgDotFile);
             System.out.println("\nPara visualizar, ejecutar:");
             System.out.println("  dot -Tpng " + dotFile + " -o cfg.png");
             System.out.println("  dot -Tpng " + pdtDotFile + " -o pdt.png");
+            System.out.println("  dot -Tpng " + cdgDotFile + " -o cdg.png");
             System.out.println("\nO pegar el contenido DOT en: https://dreampuf.github.io/GraphvizOnline/");
 
         } catch (Exception e) {

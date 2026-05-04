@@ -1,5 +1,6 @@
 package cfg;
 
+import cfg.CDGBuilder.CDGEdge;
 import cfg.CFGNode.CFGEdge;
 
 import java.util.List;
@@ -306,6 +307,91 @@ public class DOTExporter {
                   .append(" -> ")
                   .append(nodeId(child))
                   .append(";\n");
+            }
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /**
+     * Exporta el Control Dependence Graph (CDG) a formato DOT.
+     * Las aristas CDG se muestran como flechas punteadas del predicado al nodo dependiente.
+     */
+    public static String exportCDG(List<CFGNode> nodes, CDGBuilder cdg) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("digraph CDG {\n");
+        sb.append("    // Control Dependence Graph\n");
+        sb.append("    rankdir=TB;\n");
+        sb.append("    fontname=\"Arial\";\n");
+        sb.append("    node [fontname=\"Arial\", fontsize=12];\n");
+        sb.append("    edge [fontname=\"Arial\", fontsize=10];\n");
+        sb.append("    label=\"Control Dependence Graph (CDG)\";\n");
+        sb.append("    labelloc=t;\n");
+        sb.append("\n");
+
+        // Declarar nodos (mismo estilo que el CFG)
+        for (CFGNode node : nodes) {
+            sb.append("    ").append(nodeId(node)).append(" [");
+
+            switch (node.getType()) {
+                case ENTRY:
+                    sb.append("shape=circle, width=0.5, style=filled, fillcolor=green, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case EXIT:
+                    sb.append("shape=doublecircle, width=0.5, style=filled, fillcolor=red, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case JOIN:
+                    sb.append("shape=ellipse, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(" (join)\"");
+                    break;
+
+                case CONDITION:
+                    sb.append("shape=diamond, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+
+                case STATEMENT:
+                    sb.append("shape=box, style=\"rounded,filled\", fillcolor=lightblue, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+            }
+
+            sb.append("];\n");
+        }
+
+        sb.append("\n");
+
+        // Declarar aristas CDG (punteadas)
+        Map<CFGNode, List<CDGEdge>> allEdges = cdg.getAllEdges();
+        for (CFGNode node : nodes) {
+            List<CDGEdge> edges = allEdges.get(node);
+            if (edges == null) continue;
+            for (CDGEdge edge : edges) {
+                sb.append("    ")
+                  .append(nodeId(edge.getPredicate()))
+                  .append(" -> ")
+                  .append(nodeId(edge.getDependent()))
+                  .append(" [style=dashed");
+
+                String lbl = edge.getLabel();
+                if (lbl != null && !lbl.isEmpty()) {
+                    sb.append(", label=\"").append(lbl).append("\"");
+                    if ("True".equals(lbl)) {
+                        sb.append(", color=darkgreen, fontcolor=darkgreen");
+                    } else if ("False".equals(lbl)) {
+                        sb.append(", color=red, fontcolor=red");
+                    }
+                }
+
+                sb.append("];\n");
             }
         }
 
