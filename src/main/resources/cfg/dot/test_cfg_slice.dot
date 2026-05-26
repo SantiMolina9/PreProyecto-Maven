@@ -1,0 +1,24 @@
+digraph Slice_Highlighted {
+    rankdir=TB;
+    fontname="Arial";
+    node [fontname="Arial", fontsize=12];
+    edge [fontname="Arial", fontsize=10];
+    label="Program Slice (criterio: n6 - return z)";
+    labelloc=t;
+
+    n0 [shape=circle, style=filled, fillcolor="#DDDDDD", fontcolor="#999999", label="n0: ENTRY"];
+    n1 [shape=doublecircle, style=filled, fillcolor="#DDDDDD", fontcolor="#999999", label="n1: EXIT"];
+    n2 [shape=box, style=filled, fillcolor="#FFD700", penwidth=2, label="n2: x = 3"];
+    n3 [shape=diamond, style=filled, fillcolor="#FFD700", penwidth=2, label="n3: y"];
+    n4 [shape=box, style=filled, fillcolor="#FFD700", penwidth=2, label="n4: z = (x + 1)"];
+    n5 [shape=box, style=filled, fillcolor="#DDDDDD", fontcolor="#999999", label="n5: y = (x + z)"];
+    n6 [shape=box, style="filled,bold", fillcolor="#FF6600", fontcolor=white, penwidth=3, label="n6: return z"];
+
+    n0 -> n2 [style=dashed, color="#AAAAAA", fontcolor="#AAAAAA"];
+    n2 -> n3 [penwidth=2];
+    n3 -> n4 [penwidth=2, label="True", color=darkgreen, fontcolor=darkgreen];
+    n3 -> n5 [style=dashed, color="#AAAAAA", fontcolor="#AAAAAA", label="False"];
+    n4 -> n6 [penwidth=2];
+    n5 -> n6 [style=dashed, color="#AAAAAA", fontcolor="#AAAAAA"];
+    n6 -> n1 [style=dashed, color="#AAAAAA", fontcolor="#AAAAAA"];
+}

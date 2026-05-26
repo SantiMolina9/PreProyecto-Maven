@@ -2,6 +2,7 @@ package cfg;
 
 import cfg.CDGBuilder.CDGEdge;
 import cfg.CFGNode.CFGEdge;
+import cfg.DDGBuilder.DDGEdge;
 
 import java.util.List;
 import java.util.Map;
@@ -397,6 +398,357 @@ public class DOTExporter {
 
         sb.append("}\n");
         return sb.toString();
+    }
+
+    /**
+     * Exporta el Data Dependence Graph (DDG) a formato DOT.
+     * Muestra los mismos nodos que el CFG, con aristas de dependencia de datos
+     * (flechas naranjas punteadas) etiquetadas con el nombre de la variable.
+     */
+    public static String exportDDG(List<CFGNode> nodes, DDGBuilder ddg) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("digraph DDG {\n");
+        sb.append("    // Data Dependence Graph\n");
+        sb.append("    rankdir=TB;\n");
+        sb.append("    fontname=\"Arial\";\n");
+        sb.append("    node [fontname=\"Arial\", fontsize=12];\n");
+        sb.append("    edge [fontname=\"Arial\", fontsize=10];\n");
+        sb.append("    label=\"Data Dependence Graph (DDG)\";\n");
+        sb.append("    labelloc=t;\n");
+        sb.append("\n");
+
+        // Declarar nodos (mismo estilo que el CFG)
+        for (CFGNode node : nodes) {
+            sb.append("    ").append(nodeId(node)).append(" [");
+
+            switch (node.getType()) {
+                case ENTRY:
+                    sb.append("shape=circle, width=0.5, style=filled, fillcolor=green, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case EXIT:
+                    sb.append("shape=doublecircle, width=0.5, style=filled, fillcolor=red, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+
+                case JOIN:
+                    sb.append("shape=ellipse, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(" (join)\"");
+                    break;
+
+                case CONDITION:
+                    sb.append("shape=diamond, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+
+                case STATEMENT:
+                    sb.append("shape=box, style=\"rounded,filled\", fillcolor=lightblue, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+            }
+
+            sb.append("];\n");
+        }
+
+        sb.append("\n");
+
+        // Aristas DDG: flechas naranjas punteadas etiquetadas con la variable
+        for (DDGEdge edge : ddg.getEdges()) {
+            sb.append("    ")
+              .append(nodeId(edge.getFrom()))
+              .append(" -> ")
+              .append(nodeId(edge.getTo()))
+              .append(" [style=dashed, color=darkorange, fontcolor=darkorange")
+              .append(", label=\"").append(escapeLabel(edge.getVariable())).append("\"")
+              .append("];\n");
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /**
+     * Exporta el Program Dependence Graph (PDG) a formato DOT.
+     * El PDG combina las aristas del CDG y del DDG en un unico grafo:
+     *   - Aristas CDG: punteadas verdes/rojas (True/False), representan dependencia de control
+     *   - Aristas DDG: punteadas naranjas, etiquetadas con la variable, representan dependencia de datos
+     *
+     * Este es el grafo sobre el que opera el Program Slicer (recorrido BFS hacia atras).
+     */
+    public static String exportPDG(List<CFGNode> nodes, CDGBuilder cdg, DDGBuilder ddg) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("digraph PDG {\n");
+        sb.append("    // Program Dependence Graph (CDG + DDG)\n");
+        sb.append("    rankdir=TB;\n");
+        sb.append("    fontname=\"Arial\";\n");
+        sb.append("    node [fontname=\"Arial\", fontsize=12];\n");
+        sb.append("    edge [fontname=\"Arial\", fontsize=10];\n");
+        sb.append("    label=\"Program Dependence Graph (PDG)\";\n");
+        sb.append("    labelloc=t;\n");
+        sb.append("\n");
+
+        // Nodos (mismo estilo que CFG)
+        for (CFGNode node : nodes) {
+            sb.append("    ").append(nodeId(node)).append(" [");
+
+            switch (node.getType()) {
+                case ENTRY:
+                    sb.append("shape=circle, width=0.5, style=filled, fillcolor=green, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+                case EXIT:
+                    sb.append("shape=doublecircle, width=0.5, style=filled, fillcolor=red, ")
+                      .append("label=\"").append(node.getLabel()).append("\"");
+                    break;
+                case JOIN:
+                    sb.append("shape=ellipse, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(" (join)\"");
+                    break;
+                case CONDITION:
+                    sb.append("shape=diamond, style=filled, fillcolor=lightyellow, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+                default:
+                    sb.append("shape=box, style=\"rounded,filled\", fillcolor=lightblue, ")
+                      .append("label=\"n").append(node.getId()).append(": ")
+                      .append(escapeLabel(node.getLabel())).append("\"");
+                    break;
+            }
+
+            sb.append("];\n");
+        }
+
+        sb.append("\n");
+
+        // Aristas CDG: punteadas, verdes (True) / rojas (False)
+        sb.append("    // --- Dependencias de Control (CDG) ---\n");
+        Map<CFGNode, List<CDGEdge>> allCdgEdges = cdg.getAllEdges();
+        for (CFGNode node : nodes) {
+            List<CDGEdge> edges = allCdgEdges.get(node);
+            if (edges == null) continue;
+            for (CDGEdge edge : edges) {
+                sb.append("    ")
+                  .append(nodeId(edge.getPredicate()))
+                  .append(" -> ")
+                  .append(nodeId(edge.getDependent()))
+                  .append(" [style=dashed, penwidth=1.5");
+
+                String lbl = edge.getLabel();
+                if (lbl != null && !lbl.isEmpty()) {
+                    sb.append(", label=\"").append(lbl).append("\"");
+                    if ("True".equals(lbl)) {
+                        sb.append(", color=darkgreen, fontcolor=darkgreen");
+                    } else if ("False".equals(lbl)) {
+                        sb.append(", color=red, fontcolor=red");
+                    }
+                } else {
+                    sb.append(", color=steelblue, fontcolor=steelblue");
+                }
+
+                sb.append("];\n");
+            }
+        }
+
+        sb.append("\n");
+
+        // Aristas DDG: punteadas naranjas
+        sb.append("    // --- Dependencias de Datos (DDG) ---\n");
+        for (DDGEdge edge : ddg.getEdges()) {
+            sb.append("    ")
+              .append(nodeId(edge.getFrom()))
+              .append(" -> ")
+              .append(nodeId(edge.getTo()))
+              .append(" [style=dashed, color=darkorange, fontcolor=darkorange, penwidth=1.5")
+              .append(", label=\"").append(escapeLabel(edge.getVariable())).append("\"")
+              .append("];\n");
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /**
+     * Exporta el CFG completo con el slice resaltado.
+     *
+     * Convencion de colores:
+     *   - Criterio del slice: naranja (#FF6600), borde grueso
+     *   - Nodos en el slice:  dorado (#FFD700), borde medio
+     *   - Nodos fuera del slice: gris claro (#CCCCCC), etiqueta atenuada
+     *   - Aristas entre nodos del slice: negro, solida
+     *   - Aristas hacia/desde nodos fuera del slice: gris, punteada
+     */
+    public static String exportSliceHighlighted(List<CFGNode> allNodes, Set<CFGNode> slice,
+                                                 CFGNode criterion) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("digraph Slice_Highlighted {\n");
+        sb.append("    rankdir=TB;\n");
+        sb.append("    fontname=\"Arial\";\n");
+        sb.append("    node [fontname=\"Arial\", fontsize=12];\n");
+        sb.append("    edge [fontname=\"Arial\", fontsize=10];\n");
+        sb.append("    label=\"Program Slice (criterio: n").append(criterion.getId())
+          .append(" - ").append(escapeLabel(criterion.getLabel().isEmpty() ? "join" : criterion.getLabel()))
+          .append(")\";\n");
+        sb.append("    labelloc=t;\n\n");
+
+        // Nodos
+        for (CFGNode node : allNodes) {
+            boolean inSlice = slice.contains(node);
+            boolean isCriterion = (node == criterion);
+
+            sb.append("    ").append(nodeId(node)).append(" [");
+
+            if (isCriterion) {
+                // Criterio: naranja intenso, borde muy grueso
+                String lbl = "n" + node.getId() + ": " +
+                             escapeLabel(node.getLabel().isEmpty() ? "(join)" : node.getLabel());
+                sb.append("shape=").append(shapeFor(node)).append(", ")
+                  .append("style=\"filled,bold\", fillcolor=\"#FF6600\", fontcolor=white, ")
+                  .append("penwidth=3, ")
+                  .append("label=\"").append(lbl).append("\"");
+            } else if (inSlice) {
+                // En el slice: dorado
+                String lbl = "n" + node.getId() + ": " +
+                             escapeLabel(node.getLabel().isEmpty() ? "(join)" : node.getLabel());
+                sb.append("shape=").append(shapeFor(node)).append(", ")
+                  .append("style=filled, fillcolor=\"#FFD700\", ")
+                  .append("penwidth=2, ")
+                  .append("label=\"").append(lbl).append("\"");
+            } else {
+                // Fuera del slice: gris
+                String lbl = "n" + node.getId() + ": " +
+                             escapeLabel(node.getLabel().isEmpty() ? "(join)" : node.getLabel());
+                sb.append("shape=").append(shapeFor(node)).append(", ")
+                  .append("style=filled, fillcolor=\"#DDDDDD\", fontcolor=\"#999999\", ")
+                  .append("label=\"").append(lbl).append("\"");
+            }
+
+            sb.append("];\n");
+        }
+
+        sb.append("\n");
+
+        // Aristas
+        for (CFGNode node : allNodes) {
+            for (CFGNode.CFGEdge edge : node.getSuccessors()) {
+                boolean bothInSlice = slice.contains(edge.getFrom()) && slice.contains(edge.getTo());
+
+                sb.append("    ")
+                  .append(nodeId(edge.getFrom()))
+                  .append(" -> ")
+                  .append(nodeId(edge.getTo()))
+                  .append(" [");
+
+                if (bothInSlice) {
+                    sb.append("penwidth=2");
+                    if (!edge.getLabel().isEmpty()) {
+                        sb.append(", label=\"").append(edge.getLabel()).append("\"");
+                        if ("True".equals(edge.getLabel()))
+                            sb.append(", color=darkgreen, fontcolor=darkgreen");
+                        else if ("False".equals(edge.getLabel()))
+                            sb.append(", color=red, fontcolor=red");
+                    }
+                } else {
+                    sb.append("style=dashed, color=\"#AAAAAA\", fontcolor=\"#AAAAAA\"");
+                    if (!edge.getLabel().isEmpty()) {
+                        sb.append(", label=\"").append(edge.getLabel()).append("\"");
+                    }
+                }
+
+                sb.append("];\n");
+            }
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /**
+     * Exporta el CFG reducido al slice: solo los nodos del slice con aristas reconstruidas.
+     *
+     * Las aristas del CFG original que atraviesan nodos fuera del slice se reconectan
+     * directamente entre el nodo de origen y el primer nodo del slice alcanzable.
+     */
+    public static String exportSlicedCFG(List<CFGNode> allNodes, Set<CFGNode> slice,
+                                          CFGNode criterion, ProgramSlicer slicer) {
+        List<CFGNode> sliceNodes = slicer.getSliceOrdered(slice);
+        List<CFGNode.CFGEdge> edges = slicer.buildSlicedEdges(slice);
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("digraph Sliced_CFG {\n");
+        sb.append("    rankdir=TB;\n");
+        sb.append("    fontname=\"Arial\";\n");
+        sb.append("    node [fontname=\"Arial\", fontsize=12];\n");
+        sb.append("    edge [fontname=\"Arial\", fontsize=10];\n");
+        sb.append("    label=\"CFG del Slice (criterio: n").append(criterion.getId())
+          .append(" - ").append(escapeLabel(criterion.getLabel().isEmpty() ? "join" : criterion.getLabel()))
+          .append(")\";\n");
+        sb.append("    labelloc=t;\n\n");
+
+        // Nodos del slice
+        for (CFGNode node : sliceNodes) {
+            boolean isCriterion = (node == criterion);
+            sb.append("    ").append(nodeId(node)).append(" [");
+
+            String lbl = "n" + node.getId() + ": " +
+                         escapeLabel(node.getLabel().isEmpty() ? "(join)" : node.getLabel());
+
+            if (isCriterion) {
+                sb.append("shape=").append(shapeFor(node)).append(", ")
+                  .append("style=\"filled,bold\", fillcolor=\"#FF6600\", fontcolor=white, ")
+                  .append("penwidth=3, ")
+                  .append("label=\"").append(lbl).append("\"");
+            } else {
+                sb.append("shape=").append(shapeFor(node)).append(", ")
+                  .append("style=filled, fillcolor=\"#FFD700\", ")
+                  .append("penwidth=2, ")
+                  .append("label=\"").append(lbl).append("\"");
+            }
+
+            sb.append("];\n");
+        }
+
+        sb.append("\n");
+
+        // Aristas reconstruidas
+        for (CFGNode.CFGEdge edge : edges) {
+            sb.append("    ")
+              .append(nodeId(edge.getFrom()))
+              .append(" -> ")
+              .append(nodeId(edge.getTo()));
+
+            if (!edge.getLabel().isEmpty()) {
+                sb.append(" [label=\"").append(edge.getLabel()).append("\"");
+                if ("True".equals(edge.getLabel()))
+                    sb.append(", color=darkgreen, fontcolor=darkgreen");
+                else if ("False".equals(edge.getLabel()))
+                    sb.append(", color=red, fontcolor=red");
+                sb.append("]");
+            }
+
+            sb.append(";\n");
+        }
+
+        sb.append("}\n");
+        return sb.toString();
+    }
+
+    /** Retorna la forma DOT para un nodo segun su tipo. */
+    private static String shapeFor(CFGNode node) {
+        switch (node.getType()) {
+            case ENTRY:     return "circle";
+            case EXIT:      return "doublecircle";
+            case CONDITION: return "diamond";
+            case JOIN:      return "ellipse";
+            default:        return "box";
+        }
     }
 
     /**

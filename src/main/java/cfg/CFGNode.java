@@ -1,7 +1,9 @@
 package cfg;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Nodo del Control Flow Graph (CFG).
@@ -23,6 +25,11 @@ public class CFGNode {
     private List<CFGEdge> successors;
     private List<CFGEdge> predecessors;
 
+    // Para Reaching Definitions: variable definida en este nodo (null si no define ninguna)
+    private String definedVar = null;
+    // Variables usadas en este nodo (en la expresion del lado derecho o en la condicion)
+    private Set<String> usedVars = new HashSet<>();
+
     public CFGNode(int id, String label, NodeType type) {
         this.id = id;
         this.label = label;
@@ -36,6 +43,12 @@ public class CFGNode {
     public NodeType getType() { return type; }
     public List<CFGEdge> getSuccessors() { return successors; }
     public List<CFGEdge> getPredecessors() { return predecessors; }
+
+    public String getDefinedVar() { return definedVar; }
+    public void setDefinedVar(String definedVar) { this.definedVar = definedVar; }
+
+    public Set<String> getUsedVars() { return usedVars; }
+    public void setUsedVars(Set<String> usedVars) { this.usedVars = usedVars; }
 
     public void addSuccessor(CFGEdge edge) {
         successors.add(edge);
