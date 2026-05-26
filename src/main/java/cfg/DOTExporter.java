@@ -318,6 +318,7 @@ public class DOTExporter {
     /**
      * Exporta el Control Dependence Graph (CDG) a formato DOT.
      * Las aristas CDG se muestran como flechas punteadas del predicado al nodo dependiente.
+     * EXIT se excluye: no es predicado y no tiene dependencias de control.
      */
     public static String exportCDG(List<CFGNode> nodes, CDGBuilder cdg) {
         StringBuilder sb = new StringBuilder();
@@ -332,8 +333,9 @@ public class DOTExporter {
         sb.append("    labelloc=t;\n");
         sb.append("\n");
 
-        // Declarar nodos (mismo estilo que el CFG)
+        // Declarar nodos (mismo estilo que el CFG). EXIT excluido: no es predicado.
         for (CFGNode node : nodes) {
+            if (node.getType() == CFGNode.NodeType.EXIT) continue;
             sb.append("    ").append(nodeId(node)).append(" [");
 
             switch (node.getType()) {
@@ -402,8 +404,9 @@ public class DOTExporter {
 
     /**
      * Exporta el Data Dependence Graph (DDG) a formato DOT.
-     * Muestra los mismos nodos que el CFG, con aristas de dependencia de datos
-     * (flechas naranjas punteadas) etiquetadas con el nombre de la variable.
+     * Muestra los nodos con aristas de dependencia de datos (flechas naranjas punteadas)
+     * etiquetadas con el nombre de la variable.
+     * ENTRY y EXIT se excluyen: no definen ni usan variables, nunca participan en el DDG.
      */
     public static String exportDDG(List<CFGNode> nodes, DDGBuilder ddg) {
         StringBuilder sb = new StringBuilder();
@@ -418,8 +421,10 @@ public class DOTExporter {
         sb.append("    labelloc=t;\n");
         sb.append("\n");
 
-        // Declarar nodos (mismo estilo que el CFG)
+        // Declarar nodos. ENTRY y EXIT excluidos: no participan en dependencias de datos.
         for (CFGNode node : nodes) {
+            if (node.getType() == CFGNode.NodeType.ENTRY
+                    || node.getType() == CFGNode.NodeType.EXIT) continue;
             sb.append("    ").append(nodeId(node)).append(" [");
 
             switch (node.getType()) {
@@ -476,6 +481,7 @@ public class DOTExporter {
      * El PDG combina las aristas del CDG y del DDG en un unico grafo:
      *   - Aristas CDG: punteadas verdes/rojas (True/False), representan dependencia de control
      *   - Aristas DDG: punteadas naranjas, etiquetadas con la variable, representan dependencia de datos
+     * EXIT se excluye: no tiene aristas CDG ni DDG.
      *
      * Este es el grafo sobre el que opera el Program Slicer (recorrido BFS hacia atras).
      */
@@ -492,8 +498,9 @@ public class DOTExporter {
         sb.append("    labelloc=t;\n");
         sb.append("\n");
 
-        // Nodos (mismo estilo que CFG)
+        // Nodos. EXIT excluido: no tiene aristas CDG ni DDG.
         for (CFGNode node : nodes) {
+            if (node.getType() == CFGNode.NodeType.EXIT) continue;
             sb.append("    ").append(nodeId(node)).append(" [");
 
             switch (node.getType()) {

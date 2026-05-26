@@ -45,13 +45,18 @@ public class CDGBuilder {
 
     private final List<CFGNode> allNodes;
     private final PostDominatorTreeBuilder pdt;
+    private final CFGNode entryNode;
+    private final CFGNode exitNode;
 
     // Mapa: predicado -> lista de aristas CDG salientes
     private final Map<CFGNode, List<CDGEdge>> outEdges;
 
-    public CDGBuilder(List<CFGNode> allNodes, PostDominatorTreeBuilder pdt) {
+    public CDGBuilder(List<CFGNode> allNodes, PostDominatorTreeBuilder pdt,
+                      CFGNode entryNode, CFGNode exitNode) {
         this.allNodes = allNodes;
         this.pdt = pdt;
+        this.entryNode = entryNode;
+        this.exitNode = exitNode;
         this.outEdges = new LinkedHashMap<>();
         for (CFGNode node : allNodes) {
             outEdges.put(node, new ArrayList<>());
@@ -83,6 +88,16 @@ public class CDGBuilder {
                 if (lca == a) {
                     addEdge(a, a, label);
                 }
+            }
+        }
+
+        // Post-procesamiento: ENTRY -> nodo (T) para cada nodo sin dependencias de control
+        // entrantes. Representa que esos nodos ejecutan incondicionalmente al entrar al programa.
+        // Equivalente al CFG aumentado de Ferrante et al. donde se agrega ENTRY -> EXIT virtual.
+        for (CFGNode node : allNodes) {
+            if (node == entryNode || node == exitNode) continue;
+            if (getIncomingDependencies(node).isEmpty()) {
+                addEdge(entryNode, node, "T");
             }
         }
     }

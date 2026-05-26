@@ -144,7 +144,8 @@ public class CompilerMain {
             System.out.println("FASE 6: CONTROL DEPENDENCE GRAPH (CDG)");
             System.out.println("=".repeat(60));
 
-            CDGBuilder cdgBuilder = new CDGBuilder(cfgBuilder.getAllNodes(), pdtBuilder);
+            CDGBuilder cdgBuilder = new CDGBuilder(cfgBuilder.getAllNodes(), pdtBuilder,
+                    cfgBuilder.getEntryNode(), cfgBuilder.getExitNode());
             cdgBuilder.build();
             cdgBuilder.printCDG();
 
