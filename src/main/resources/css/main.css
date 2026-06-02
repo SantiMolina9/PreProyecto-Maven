@@ -1,0 +1,170 @@
+/* ── Raíz ─────────────────────────────────────────────────────────────── */
+.root-pane {
+    -fx-background-color: #2b2b2b;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────── */
+.main-toolbar {
+    -fx-background-color: #3c3f41;
+    -fx-border-color: #555555;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 6 10 6 10;
+    -fx-spacing: 8;
+}
+
+.toolbar-label {
+    -fx-text-fill: #bbbbbb;
+    -fx-font-size: 12px;
+}
+
+/* ── Paneles laterales ────────────────────────────────────────────────── */
+.side-panel {
+    -fx-background-color: #3c3f41;
+    -fx-padding: 10;
+    -fx-spacing: 6;
+    -fx-border-color: #555555;
+    -fx-border-width: 0 1 0 0;
+}
+
+.right .side-panel {
+    -fx-border-width: 0 0 0 1;
+}
+
+.panel-header {
+    -fx-text-fill: #aaaaaa;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-padding: 0 0 4 2;
+}
+
+/* ── Área de código fuente ────────────────────────────────────────────── */
+.source-area {
+    -fx-font-family: "Monospaced";
+    -fx-font-size: 12px;
+    -fx-control-inner-background: #1e1e1e;
+    -fx-text-fill: #d4d4d4;
+    -fx-highlight-fill: #264f78;
+    -fx-faint-focus-color: transparent;
+    -fx-background-color: transparent;
+}
+
+.source-area .content {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ── Centro ───────────────────────────────────────────────────────────── */
+.center-pane {
+    -fx-background-color: #1e1e1e;
+}
+
+.placeholder {
+    -fx-text-fill: #555555;
+    -fx-font-size: 14px;
+    -fx-font-style: italic;
+}
+
+/* ── ScrollPane del grafo ─────────────────────────────────────────────── */
+.scroll-pane {
+    -fx-background-color: #1e1e1e;
+    -fx-background: #1e1e1e;
+}
+
+.scroll-pane .viewport {
+    -fx-background-color: #1e1e1e;
+}
+
+/* ── ListView de etapas ───────────────────────────────────────────────── */
+.stage-list {
+    -fx-background-color: #3c3f41;
+    -fx-border-color: transparent;
+}
+
+.stage-list .list-cell {
+    -fx-background-color: #3c3f41;
+    -fx-padding: 5 8 5 8;
+}
+
+.stage-list .list-cell:selected {
+    -fx-background-color: #4b6eaf;
+}
+
+.stage-list .list-cell:hover:!selected {
+    -fx-background-color: #4a4d4f;
+}
+
+/* ── Botón Run ────────────────────────────────────────────────────────── */
+.run-button {
+    -fx-background-color: #4c8c4a;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-padding: 5 14 5 14;
+    -fx-background-radius: 4;
+}
+
+.run-button:hover {
+    -fx-background-color: #5aa058;
+}
+
+.run-button:disabled {
+    -fx-opacity: 0.45;
+}
+
+/* ── ComboBox ─────────────────────────────────────────────────────────── */
+.combo-box {
+    -fx-background-color: #45494a;
+    -fx-border-color: #666666;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+.combo-box .list-cell {
+    -fx-text-fill: #dddddd;
+    -fx-background-color: transparent;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #45494a;
+}
+
+.combo-box-popup .list-cell {
+    -fx-text-fill: #dddddd;
+    -fx-background-color: #45494a;
+}
+
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #5a6d8c;
+}
+
+/* ── TextField ────────────────────────────────────────────────────────── */
+.text-field {
+    -fx-background-color: #45494a;
+    -fx-text-fill: #dddddd;
+    -fx-border-color: #666666;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+    -fx-prompt-text-fill: #777777;
+}
+
+/* ── Botones de zoom ──────────────────────────────────────────────────── */
+.zoom-button {
+    -fx-background-color: #45494a;
+    -fx-text-fill: #dddddd;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 3 6 3 6;
+    -fx-background-radius: 3;
+    -fx-border-color: #666666;
+    -fx-border-radius: 3;
+}
+
+.zoom-button:hover {
+    -fx-background-color: #5a6d8c;
+}
+
+/* ── Separator ────────────────────────────────────────────────────────── */
+.separator .line {
+    -fx-border-color: #555555;
+}

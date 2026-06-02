@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="MainController"
+            styleClass="root-pane">
+
+    <!-- ── Toolbar superior ───────────────────────────────────────────── -->
+    <top>
+        <ToolBar styleClass="main-toolbar">
+            <Label text="Test:" styleClass="toolbar-label"/>
+            <ComboBox fx:id="testCombo" prefWidth="200" promptText="Seleccionar test..."/>
+            <Separator/>
+            <Label text="Slice Node ID:" styleClass="toolbar-label"/>
+            <TextField fx:id="sliceField" prefWidth="75" promptText="opcional"/>
+            <Separator/>
+            <Button fx:id="runButton" text="▶  Run"
+                    onAction="#runPipeline" styleClass="run-button"/>
+            <Separator/>
+            <Button text="−" onAction="#zoomOut" styleClass="zoom-button" prefWidth="26"/>
+            <Label fx:id="zoomLabel" text="100%" styleClass="toolbar-label"
+                   prefWidth="44" style="-fx-alignment: center;"/>
+            <Button text="+" onAction="#zoomIn" styleClass="zoom-button" prefWidth="26"/>
+            <Button text="Fit" onAction="#zoomFit" styleClass="zoom-button" prefWidth="36"/>
+        </ToolBar>
+    </top>
+
+    <!-- ── Panel izquierdo: código fuente ────────────────────────────── -->
+    <left>
+        <VBox styleClass="side-panel" prefWidth="240" minWidth="160">
+            <Label text="Código Fuente" styleClass="panel-header"/>
+            <TextArea fx:id="sourceArea" editable="false" wrapText="true"
+                      VBox.vgrow="ALWAYS" styleClass="source-area"/>
+        </VBox>
+    </left>
+
+    <!-- ── Centro: visor de grafos ───────────────────────────────────── -->
+    <center>
+        <StackPane fx:id="centerPane" styleClass="center-pane">
+            <Label fx:id="placeholderLabel"
+                   text="← Seleccioná un test y presioná Run"
+                   styleClass="placeholder"/>
+            <ScrollPane fx:id="graphScrollPane"
+                        fitToHeight="false"
+                        hbarPolicy="AS_NEEDED"
+                        vbarPolicy="AS_NEEDED"
+                        visible="false"
+                        maxWidth="Infinity"
+                        maxHeight="Infinity">
+                <ImageView fx:id="graphView" preserveRatio="true"/>
+            </ScrollPane>
+            <TextArea fx:id="textOutputArea"
+                      editable="false" wrapText="false"
+                      visible="false"
+                      maxWidth="Infinity"
+                      maxHeight="Infinity"
+                      styleClass="source-area"/>
+        </StackPane>
+    </center>
+
+    <!-- ── Panel derecho: etapas del pipeline ────────────────────────── -->
+    <right>
+        <VBox styleClass="side-panel" prefWidth="220" minWidth="160">
+            <Label text="Pipeline" styleClass="panel-header"/>
+            <ListView fx:id="stagesList" VBox.vgrow="ALWAYS" styleClass="stage-list"/>
+        </VBox>
+    </right>
+
+</BorderPane>

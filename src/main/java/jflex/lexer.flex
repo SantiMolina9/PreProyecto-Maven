@@ -60,6 +60,9 @@ identifier     = [A-Za-z_][A-Za-z_0-9]*
     ";"                { return symbol(sym.SEMI); }
     "="                { return symbol(sym.ASSIGN); }
     "+"                { return symbol(sym.PLUS); }
+    "-"                { return symbol(sym.MINUS); }
+    "<"                { return symbol(sym.LT); }
+    ">"                { return symbol(sym.GT); }
     "("                { return symbol(sym.LPAREN); }
     ")"                { return symbol(sym.RPAREN); }
     "{"                { return symbol(sym.LBRACE); }

@@ -34,15 +34,15 @@ parser code {:
         System.err.println("Error de sintaxis: " + message);
     }
 
-    public void report_fatal_error(String message, Object info) {
+    public void report_fatal_error(String message, Object info) throws Exception {
         report_error(message, info);
-        System.exit(1);
+        throw new RuntimeException("Parse fatal: " + message);
     }
 :};
 
 /* ========== Terminal symbols (tokens) ========== */
 terminal           SEMI, ASSIGN;
-terminal           PLUS;
+terminal           PLUS, MINUS, LT, GT;
 terminal           LPAREN, RPAREN, LBRACE, RBRACE;
 terminal           INTEGER, RETURN;
 terminal           IF, ELSE, WHILE;
@@ -130,11 +130,29 @@ while_stmt ::= WHILE:w LPAREN expr:cond RPAREN LBRACE stmt_list:body RBRACE
                :}
                ;
 
-/* Expression -> Value + Value | Value */
+/* Expression -> Value op Value | Value */
 expr ::= value:v1 PLUS:op value:v2
          {:
              RESULT = new BinaryOpNode(opleft, opright, v1,
                  BinaryOpNode.Operator.PLUS, v2);
+         :}
+         |
+         value:v1 MINUS:op value:v2
+         {:
+             RESULT = new BinaryOpNode(opleft, opright, v1,
+                 BinaryOpNode.Operator.MINUS, v2);
+         :}
+         |
+         value:v1 LT:op value:v2
+         {:
+             RESULT = new BinaryOpNode(opleft, opright, v1,
+                 BinaryOpNode.Operator.LT, v2);
+         :}
+         |
+         value:v1 GT:op value:v2
+         {:
+             RESULT = new BinaryOpNode(opleft, opright, v1,
+                 BinaryOpNode.Operator.GT, v2);
          :}
          |
          value:v

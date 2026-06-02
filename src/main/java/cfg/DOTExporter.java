@@ -406,7 +406,7 @@ public class DOTExporter {
      * Exporta el Data Dependence Graph (DDG) a formato DOT.
      * Muestra los nodos con aristas de dependencia de datos (flechas naranjas punteadas)
      * etiquetadas con el nombre de la variable.
-     * ENTRY y EXIT se excluyen: no definen ni usan variables, nunca participan en el DDG.
+     * ENTRY y EXIT se excluyen: no definen ni usan variables, nunca tienen aristas DDG.
      */
     public static String exportDDG(List<CFGNode> nodes, DDGBuilder ddg) {
         StringBuilder sb = new StringBuilder();
@@ -421,7 +421,7 @@ public class DOTExporter {
         sb.append("    labelloc=t;\n");
         sb.append("\n");
 
-        // Declarar nodos. ENTRY y EXIT excluidos: no participan en dependencias de datos.
+        // Declarar nodos. ENTRY y EXIT excluidos: no definen ni usan variables.
         for (CFGNode node : nodes) {
             if (node.getType() == CFGNode.NodeType.ENTRY
                     || node.getType() == CFGNode.NodeType.EXIT) continue;

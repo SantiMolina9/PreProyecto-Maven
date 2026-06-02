@@ -11,9 +11,10 @@
 ## 📋 Tabla de Contenidos
 1. [Introducción](#introducción)
 2. [Instalación y Configuración](#instalación-y-configuración)
-3. [Arquitectura](#arquitectura)
-4. [Componentes](#componentes)
-5. [Archivos de prueba](#archivos-de-prueba)
+3. [Interfaz Gráfica (GUI)](#interfaz-gráfica-gui)
+4. [Arquitectura](#arquitectura)
+5. [Componentes](#componentes)
+6. [Archivos de prueba](#archivos-de-prueba)
 
 ---
 
@@ -45,8 +46,10 @@ Como extensión para la materia **Análisis Estático de Programas**, se impleme
 - **CDG**: Dependencias de control (Ferrante et al., 1987)
 - **Reaching Definitions**: Análisis de flujo de datos (GEN/KILL/IN/OUT) hasta punto fijo
 - **DDG**: Pares definición-uso derivados de las definiciones alcanzantes
+- **PDG**: Grafo de Dependencias del Programa (CDG + DDG unificados)
 - **Program Slicing**: Backward slice por BFS sobre el PDG (CDG + DDG inverso)
-- **Visualización**: DOT (Graphviz) para todos los grafos, con slice resaltado
+- **Visualización DOT**: Exportación a Graphviz para todos los grafos, con slice resaltado
+- **Interfaz Gráfica (GUI)**: App JavaFX que ejecuta el pipeline paso a paso y permite navegar cada grafo interactivamente
 - **Manejo de Errores**: Sistema completo con errores léxicos, sintácticos, semánticos y de tipos
 
 ### Ejemplo de código analizable
@@ -66,10 +69,10 @@ integer f(){
 
 ### Requisitos previos
 
-- Java 11 o superior
+- Java 17 o superior
 - Maven 3.6+
 - Git
-- Graphviz (opcional, para visualizar los grafos generados)
+- Graphviz (requerido para la GUI; opcional en modo CLI para visualizar los `.dot` generados)
 
 ### Inicio rápido
 
@@ -81,14 +84,18 @@ cd compiler
 # Compilar el proyecto
 mvn clean compile
 
-# Ejecutar con archivo de prueba (Windows) — sin slicing
+# ── Modo GUI (recomendado) ──────────────────────────────────────────────────
+mvn javafx:run
+
+# ── Modo CLI ────────────────────────────────────────────────────────────────
+# Sin slicing (Windows)
 mvn exec:java "-Dexec.args=src/main/resources/cfg/test_cfg.txt"
 
-# Ejecutar con slicing (especificando el nodo criterio por su ID)
+# Con slicing — indicar el ID del nodo criterio
 mvn exec:java "-Dexec.args=src/main/resources/cfg/test_cfg.txt 6"
 
-# Ejecutar (Linux/Mac)
-mvn exec:java -Dexec.args="src/main/resources/cfg/test_cfg.txt 6"
+# Sin slicing (Linux/Mac)
+mvn exec:java -Dexec.args="src/main/resources/cfg/test_cfg.txt"
 ```
 
 Archivos DOT generados (en la misma carpeta que el `.txt` de entrada):
@@ -165,6 +172,7 @@ Los archivos `.dot` se guardan en `<carpeta-del-txt>/dot/`:
 | `dot/nombre_pdt.dot` | Árbol de Post-Dominadores |
 | `dot/nombre_cdg.dot` | Grafo de Dependencias de Control |
 | `dot/nombre_ddg.dot` | Grafo de Dependencias de Datos |
+| `dot/nombre_pdg.dot` | PDG: CDG + DDG superpuestos |
 | `dot/nombre_slice.dot` | CFG completo con el slice resaltado |
 | `dot/nombre_sliced_cfg.dot` | CFG reducido a los nodos del slice |
 
@@ -178,7 +186,11 @@ compiler/
 └── src/
     └── main/
         ├── java/
-        │   ├── CompilerMain.java                       # Punto de entrada (9 fases)
+        │   ├── CompilerMain.java                       # Punto de entrada CLI (9 fases)
+        │   ├── MainApp.java                            # Punto de entrada GUI (JavaFX Application)
+        │   ├── MainController.java                     # Controlador FXML de la ventana principal
+        │   ├── PipelineRunner.java                     # Task<Void>: pipeline en background
+        │   ├── GraphStage.java                         # Modelo de cada etapa (estado, grafo, texto)
         │   ├── ast/                                    # Árbol sintáctico abstracto
         │   │   ├── ASTNode.java
         │   │   ├── nodes/
@@ -206,6 +218,10 @@ compiler/
         │   └── jflex/
         │       └── lexer.flex
         └── resources/
+            ├── fxml/
+            │   └── main.fxml                           # Layout declarativo de la GUI
+            ├── css/
+            │   └── main.css                            # Tema visual oscuro de la GUI
             ├── cfg/                                    # Tests del análisis CFG/PDG
             │   ├── test_cfg.txt                        # Programa simple con if/else
             │   ├── test_cfg_while.txt                  # Programa con bucle while
@@ -221,6 +237,178 @@ compiler/
             ├── test_completo_exitoso.txt / .asm
             ├── test_error_*.txt                        # Tests de errores semánticos
             └── ...                                     # Resto de tests del compilador
+```
+
+---
+
+## Interfaz Gráfica (GUI)
+
+La GUI es una aplicación **JavaFX** que ejecuta exactamente el mismo pipeline de análisis que el modo CLI, pero de forma interactiva: el pipeline corre en un hilo de fondo, las etapas se van completando una a una en tiempo real, y cada grafo puede visualizarse con un click.
+
+### Cómo ejecutar
+
+```bash
+mvn clean compile javafx:run
+```
+
+> Requiere que el binario `dot` de Graphviz esté en el PATH del sistema. Si no lo está, las etapas con grafo muestran el DOT source como texto en lugar de imagen.
+
+### Layout de la ventana
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ TOOLBAR: [test_cfg.txt ▼]   Slice Node ID: [___]   [▶ Run]         │
+├──────────────┬──────────────────────────────────┬───────────────────┤
+│ Código       │                                  │  Pipeline         │
+│ Fuente       │   Visor de grafo                 │  ──────────────── │
+│ ──────────── │   (ScrollPane + ImageView)       │ ○ 1. Parsing      │
+│ integer f(){ │                                  │ ⟳ 2. CFG          │
+│   x = 3;     │   [imagen del grafo seleccionado │ ✓ 3. CFG + PDOM   │
+│   if (y) {   │    o texto DOT como fallback]    │ ○ 4. PDT          │
+│     z = x+1  │                                  │ ○ 5. CDG          │
+│   }          │                                  │ ○ 6. Reaching Def │
+│   return z;  │                                  │ ○ 7. DDG          │
+│              │                                  │ ○ 8. PDG          │
+│              │                                  │ ○ 9. Slice        │
+│              │                                  │ ○ 10. Sliced CFG  │
+└──────────────┴──────────────────────────────────┴───────────────────┘
+```
+
+- **Panel izquierdo**: muestra el código fuente del test seleccionado.
+- **Centro**: visor de grafos. Muestra la imagen renderizada de la etapa seleccionada, o su salida en texto (Parsing, Reaching Defs) si no tiene grafo visual.
+- **Panel derecho**: lista de las 10 etapas del pipeline con su estado en tiempo real.
+
+### Flujo de uso
+
+1. Seleccionar un archivo `.txt` en el **ComboBox** de la toolbar → el código fuente aparece en el panel izquierdo.
+2. Opcionalmente, ingresar un **Node ID** en el campo "Slice Node ID" para activar el Program Slicing.
+3. Presionar **▶ Run** → el pipeline comienza a ejecutarse en background.
+4. Las etapas cambian de estado: `○` pendiente → `⟳` ejecutando → `✓` completada.
+5. La etapa más reciente se selecciona automáticamente y su grafo se muestra en el centro.
+6. Hacer click en cualquier etapa completada para ver su grafo o texto.
+
+### Estados de las etapas
+
+| Ícono | Estado | Descripción |
+|-------|--------|-------------|
+| `○` | PENDING | Aún no ejecutada |
+| `⟳` | RUNNING | En ejecución actualmente |
+| `✓` | DONE | Completada, grafo disponible |
+| `—` | SKIPPED | Omitida (Slice sin criterio) |
+| `✗` | ERROR | Falló durante la ejecución |
+
+### Las 10 etapas del pipeline en la GUI
+
+| # | Nombre | Salida visual |
+|---|--------|---------------|
+| 1 | Parsing (AST) | Texto: info del AST |
+| 2 | CFG | Grafo: CFG básico |
+| 3 | CFG + PDOM | Grafo: CFG con conjuntos PDOM anotados |
+| 4 | PDT | Grafo: Árbol de Post-Dominadores |
+| 5 | CDG | Grafo: Dependencias de Control |
+| 6 | Reaching Defs | Texto: tabla GEN/KILL/IN/OUT por nodo |
+| 7 | DDG | Grafo: Dependencias de Datos |
+| 8 | PDG | Grafo: CDG + DDG superpuestos |
+| 9 | Slice | Grafo: CFG completo con slice resaltado |
+| 10 | Sliced CFG | Grafo: CFG reducido al slice |
+
+Las etapas 9 y 10 se marcan como `SKIPPED` si no se especificó Node ID.
+
+### Clases de la GUI
+
+#### `MainApp`
+
+Entry point de JavaFX. Carga el layout `main.fxml`, aplica `main.css` y muestra la ventana (1280×780 mínimo).
+
+```java
+public class MainApp extends Application {
+    public void start(Stage primaryStage) throws Exception { ... }
+    public static void main(String[] args) { launch(args); }
+}
+```
+
+#### `GraphStage`
+
+Modelo observable de una etapa del pipeline. Cada instancia representa una etapa con sus datos y estado.
+
+```java
+public class GraphStage {
+    enum Status { PENDING, RUNNING, DONE, SKIPPED, ERROR }
+
+    // Propiedades JavaFX (para binding)
+    StringProperty name
+    ObjectProperty<Status> status
+
+    // Datos de la etapa (acceso directo)
+    String dotSource        // fuente DOT (para re-exportar o mostrar como fallback)
+    Image  renderedImage    // imagen PNG renderizada (null si Graphviz no disponible)
+    String textContent      // texto plano (para etapas sin grafo: Parsing, Reaching Defs)
+
+    boolean hasGraph()      // renderedImage != null
+    boolean hasText()       // textContent != null
+}
+```
+
+#### `PipelineRunner`
+
+`Task<Void>` de JavaFX que ejecuta las 10 etapas del pipeline en un hilo de fondo. Acepta un callback `Runnable onStageUpdate` que se llama (vía `Platform.runLater`) después de cada actualización de estado, permitiendo que el `MainController` refresque la UI sin bloquear el hilo principal.
+
+Para cada etapa con grafo:
+1. Genera el string DOT usando los métodos de `DOTExporter`.
+2. Renderiza el DOT a imagen PNG usando `guru.nidi.graphviz-java` con `GraphvizCmdLineEngine`.
+3. Convierte el `BufferedImage` a `javafx.scene.image.Image` mediante `ByteArrayOutputStream`.
+4. Llama a `Platform.runLater` para actualizar el `GraphStage` y notificar al controlador.
+
+Si el rendering falla (Graphviz no encontrado), `renderedImage` queda `null` y el `dotSource` se almacena como `textContent` para mostrarse como texto.
+
+```java
+public PipelineRunner(String inputFile, Integer sliceCriterionId,
+                      List<GraphStage> stages, Runnable onStageUpdate)
+```
+
+> **Nota técnica**: todas las clases de la GUI (`MainApp`, `MainController`, `PipelineRunner`, `GraphStage`) están en el paquete por defecto (sin declaración `package`), igual que `CompilerMain`. Esto es necesario porque la clase `Lexer` generada por JFlex también queda en el paquete por defecto, y en Java 9+ las clases de paquetes nombrados no pueden importar clases del paquete por defecto.
+
+#### `MainController`
+
+Controlador del FXML. Responsabilidades:
+
+- Al iniciar: escanea `src/main/resources/cfg/` y llena el ComboBox con los `.txt` disponibles.
+- Al cambiar el test: carga el código fuente en el `TextArea` izquierdo.
+- Al presionar Run: valida el Node ID, crea las 10 instancias de `GraphStage`, instancia `PipelineRunner` y lo lanza en un hilo daemon.
+- Callback del runner: llama a `stagesList.refresh()` y auto-selecciona la última etapa completada.
+- Al seleccionar una etapa: muestra su `renderedImage` en el `ImageView` (o su `textContent` en un `TextArea` superpuesto si no tiene imagen).
+
+### Dependencias añadidas (pom.xml)
+
+```xml
+<dependency>
+    <groupId>org.openjfx</groupId>
+    <artifactId>javafx-controls</artifactId>
+    <version>21</version>
+</dependency>
+<dependency>
+    <groupId>org.openjfx</groupId>
+    <artifactId>javafx-fxml</artifactId>
+    <version>21</version>
+</dependency>
+<dependency>
+    <groupId>guru.nidi</groupId>
+    <artifactId>graphviz-java</artifactId>
+    <version>0.18.1</version>
+</dependency>
+```
+
+Plugin para lanzar la GUI:
+
+```xml
+<plugin>
+    <groupId>org.openjfx</groupId>
+    <artifactId>javafx-maven-plugin</artifactId>
+    <version>0.0.8</version>
+    <configuration>
+        <mainClass>MainApp</mainClass>
+    </configuration>
+</plugin>
 ```
 
 ---
@@ -279,7 +467,7 @@ Código Fuente (.txt)
 ┌─────────────────┐
 │  Fase 8:        │
 │   DDGBuilder    │  IN-sets + usedVars → pares Def-Uso → DDG
-│  DOTExporter    │  DDG → _ddg.dot
+│  DOTExporter    │  DDG → _ddg.dot  /  PDG (CDG+DDG) → _pdg.dot
 └────────┬────────┘
          │ DDG
          ▼
@@ -695,9 +883,12 @@ public static String exportWithPdom(List<CFGNode> nodes, Map<CFGNode, Set<CFGNod
 public static String exportPDT(PostDominatorTreeBuilder pdt)
 public static String exportCDG(List<CFGNode> nodes, CDGBuilder cdg)
 public static String exportDDG(List<CFGNode> nodes, DDGBuilder ddg)
+public static String exportPDG(List<CFGNode> nodes, CDGBuilder cdg, DDGBuilder ddg)
 public static String exportSliceHighlighted(List<CFGNode> allNodes, Set<CFGNode> slice, CFGNode criterion)
 public static String exportSlicedCFG(List<CFGNode> allNodes, Set<CFGNode> slice, CFGNode criterion, ProgramSlicer slicer)
 ```
+
+`exportPDG` combina en un mismo grafo las aristas del CDG (punteadas) y del DDG (punteadas naranja), produciendo una vista integrada del PDG completo. Es equivalente a superponer `exportCDG` y `exportDDG`.
 
 #### Representación visual por tipo de nodo
 

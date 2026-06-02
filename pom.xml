@@ -30,6 +30,23 @@
             <artifactId>build-helper-maven-plugin</artifactId>
             <version>3.3.0</version>
         </dependency>
+        <!-- JavaFX -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>21</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>21</version>
+        </dependency>
+        <!-- Graphviz rendering -->
+        <dependency>
+            <groupId>guru.nidi</groupId>
+            <artifactId>graphviz-java</artifactId>
+            <version>0.18.1</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -105,6 +122,48 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <!--
+                Desempaqueta java-cup-runtime en target/classes para que esté disponible
+                como classpath plano cuando javafx-maven-plugin usa el module system.
+                El plugin descarta JARs cuyo nombre no produce un identificador Java válido
+                ('11b' no lo es), así que esta es la manera de incluirlo en el classpath.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <id>unpack-cup-runtime</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>com.github.vbmacher</groupId>
+                                    <artifactId>java-cup-runtime</artifactId>
+                                    <version>11b-20160615-3</version>
+                                    <overWrite>false</overWrite>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                                    <includes>**/*.class</includes>
+                                    <excludes>META-INF/**</excludes>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- JavaFX plugin para mvn javafx:run -->
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>MainApp</mainClass>
+                </configuration>
             </plugin>
         </plugins>
     </build>
